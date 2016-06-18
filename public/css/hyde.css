@@ -80,7 +80,8 @@ html {
   color: #fff;
   margin-top: 0;
   font-family: "Abril Fatface", serif;
-  font-size: 1.75rem;
+  font-size: 1.85rem;
+  text-align: center;
 }
 
 /* Sidebar nav */
@@ -102,6 +103,9 @@ a.sidebar-nav-item:focus {
 .icons-row {
   display:inline-block;
   padding: 1rem;
+}
+.icons-row-img{
+  margin: 0;
 }
 
 /* Sticky sidebar
