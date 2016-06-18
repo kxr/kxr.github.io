@@ -52,9 +52,6 @@ html {
  * Flexible banner for housing site name, intro, and "footer" content. Starts
  * out above content in mobile and later moves to the side with wider viewports.
  */
-.profile-pic {
-	max-width: 100%;
-}
 .sidebar {
   text-align: center;
   padding: 2rem 1rem;
@@ -111,7 +108,8 @@ a.sidebar-nav-item:focus {
   .sidebar-sticky {
     position: absolute;
     right:  1rem;
-    bottom: 1rem;
+    /*bottom: 1rem;*/
+    top: 1rem;
     left:   1rem;
   }
 }
