@@ -1,6 +1,5 @@
 # Dependencies
 gems: [jekyll-paginate, jekyll-gist]
-#gems: [jekyll-gist]
 markdown:         redcarpet
 highlighter:      pygments
 
@@ -10,16 +9,16 @@ permalink:        pretty
 
 # Setup
 title:            Khizer Naeem
-tagline:          'Linux Cloud and Devops'
+tagline:          'Linux, Windows, Cloud and Devops'
 description:      'Debugging is twice as hard as writing the code in the first place. Therefore, if you write the code as cleverly as possible, you are, by definition, not smart enough to debug it.'
-url:              http://hyde.getpoole.com
+url:              http://kxr.me
 baseurl:          /
 
 author:
-  name:           'Mark Otto'
+  name:           'Khizer Naeem'
   url:            https://twitter.com/mdo
 
-paginate:         5
+paginate:         10
 
 # Custom vars
 version:          2.1.0
