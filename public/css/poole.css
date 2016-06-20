@@ -172,6 +172,7 @@ pre {
   word-wrap: break-word;
   /*background-color: #f9f9f9;*/
   background-color: #202020;
+  overflow-x: scroll;
 }
 pre code {
   padding: 0;
