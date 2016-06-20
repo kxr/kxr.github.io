@@ -76,14 +76,6 @@ cp /tmp/utorrent-server-v3_0/utserver /opt/utorrent/
 cp /tmp/utorrent-server-v3_0/webui.zip /opt/utorrent/webui/
 {% endhighlight %}
 
-
-{% highlight python %}
-import urllib2
-print "alpha"
-a = new
-print a
-{% endhighlight %}
-
 ### Step 3: Libraries check
 
 Before proceeding further, it will be a good idea to locate any missing libraries.
@@ -97,11 +89,11 @@ ldd -r /opt/utorrent/utserver
 
 You might get the following error:
 
-    /opt/utorrent/utserver: error while loading shared libraries: libssl.so.0.9.8: cannot open shared object file: No such file or directory
+> /opt/utorrent/utserver: error while loading shared libraries: libssl.so.0.9.8: cannot open shared object file: No such file or directory
 
 or
 
-    /opt/utorrent/utserver: error while loading shared libraries: libcrypto.so.0.9.8: cannot open shared object file: No such file or directory
+> /opt/utorrent/utserver: error while loading shared libraries: libcrypto.so.0.9.8: cannot open shared object file: No such file or directory
 
 If openssl is installed properly, this might be because you have a newer version of the shared library. Creating a softlink should solve the problem.
 
