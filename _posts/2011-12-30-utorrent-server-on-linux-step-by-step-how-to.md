@@ -424,25 +424,22 @@ state_cmd:
 
 Don't worry most of the lines in the config are comments (only 34 directives in total). I recommend going through it once.
 
-
 Copy-Paste this configuration into the file utserver.conf in /opt/utorrent/conf/ directory using your favourite text editor like vim or download it directly:
 
-
 {% highlight shell %}
-    wget -O /opt/utorrent/conf/utserver.conf http://kxr.me/blog/uts/utserver.conf
+wget -O /opt/utorrent/conf/utserver.conf http://kxr.me/blog/uts/utserver.conf
 {% endhighlight %}
-
 
 Now you can start the utorrent server with the following command:
 
 {% highlight shell %}
-    /opt/utorrent/utserver -settingspath "/opt/utorrent/webui/" -configfile "/opt/utorrent/conf/utserver.conf" -logfile "/opt/utorrent/log/ut.log" -pidfile "/opt/utorrent/pid/utserver.pid" -daemon
+/opt/utorrent/utserver -settingspath "/opt/utorrent/webui/" -configfile "/opt/utorrent/conf/utserver.conf" -logfile "/opt/utorrent/log/ut.log" -pidfile "/opt/utorrent/pid/utserver.pid" -daemon
 {% endhighlight %}
 
 and stop it with:
 
 {% highlight shell %}
-     kill `cat /opt/utorrent/pid/utserver.pid`
+kill `cat /opt/utorrent/pid/utserver.pid`
 {% endhighlight %}
 
 That is not very convenient, so lets create a script to make things easier.
@@ -529,43 +526,40 @@ esac
 Create a file called utsctl in /opt/utorrent and copy-paste the code into it using your favourite editor or download it directly:
 
 {% highlight shell %}
-    wget -O /opt/utorrent/utsctl http://kxr.me/blog/uts/utsctl
+wget -O /opt/utorrent/utsctl http://kxr.me/blog/uts/utsctl
 {% endhighlight %}
 
 Once you have created this script file, lets make it executeable:
 
 {% highlight shell %}
-    chmod +x /opt/utorrent/utsctl
+chmod +x /opt/utorrent/utsctl
 {% endhighlight %}
 
 And also make it easily accessible, so that we don't have to type the whole path again and again:
 
 {% highlight shell %}
-    ln -s /opt/utorrent/utsctl /usr/bin/utsctl
+ln -s /opt/utorrent/utsctl /usr/bin/utsctl
 {% endhighlight %}
 
 Now starting stoping and checking the status is as easy as this:
 
 {% highlight shell %}
-    utsctl start
+utsctl start
 
-    utsctl stop
+utsctl stop
 
-    utsctl status
+utsctl status
 {% endhighlight %}
 
-
 ### Step 5: Start µTorrent Server
-
 
 Lets now start the utorrent server:
 
 {% highlight shell %}
-    utsctl start
+utsctl start
 {% endhighlight %}
 
 It should output "server started - using locale en_US.UTF-8" and return back to bash prompt. (Optionally, you can add this command to rc.local to auto-start it at startup)
-
 
 You should now be able to access the utorrent server gui on localhost:
 
@@ -577,12 +571,11 @@ or via the ipaddress/hostname if accessing from a remote computer:
 
 (don't forget to allow this port in the system's iptable firewall and any other firewall in between)
 
-
-
 Here is a screen-shot:
+![placeholder]({{ site.baseurl }}public/media/utserver.png "Utorrent Server GUI Screenshot")
 
 
-Playing with the configuration:
+#### Playing with the configuration:
 
 
 When you change a configuration in utserver.conf, just restarting the utserver daemon won't update the changes in WebUI. You'll have to remove the settings.dat files and then start the server again i.e,
