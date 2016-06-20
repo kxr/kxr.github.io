@@ -2,6 +2,11 @@
 gems: [jekyll-paginate, jekyll-gist]
 markdown:         kramdown
 highlighter:      rouge
+kramdown:
+  input: GFM
+  hard_wrap: false
+  syntax_highlighter: rouge
+  coderay_wrap: nil
 
 # Permalinks
 permalink:        pretty
