@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Utorrent server on Linux - step by step howto
+title: Utorrent server on Linux - Step by step
 ---
 
 It has been six years since I migrated to Linux (from windows) and never looked back. I used to use uTorrent on windows as my torrent client. It was small, light-weight and very user friendly. Frankly speaking in these six years of my linux voyage, I never found any alternative to that. Until recently I heard that utorrent is now available for linux. Keeping my hopes high, I gave it a try and it lived up to my expectations. As expected it is free but closed-source, with a little hope from the forums that it might become open-source in the future. But anyways, I am really thankful to the utorrent team for briniging out utorrent for linux.
@@ -568,6 +568,7 @@ or via the ipaddress/hostname if accessing from a remote computer:
 (don't forget to allow this port in the system's iptable firewall and any other firewall in between)
 
 Here is a screen-shot:
+
 ![placeholder]({{ site.baseurl }}public/media/utserver.png "Utorrent Server GUI Screenshot")
 
 #### Playing with the configuration:
@@ -575,17 +576,17 @@ Here is a screen-shot:
 When you change a configuration in utserver.conf, just restarting the utserver daemon won't update the changes in WebUI. You'll have to remove the settings.dat files and then start the server again i.e,
 
 {% highlight shell %}
-    utsctl stop
+utsctl stop
 
-    rm -f /opt/utorrent/webui/settings.dat*
+rm -f /opt/utorrent/webui/settings.dat*
 
-    utsctl start
+utsctl start
 {% endhighlight %}
 
 I've added the "reload" option in the utsctl script that will do all these three things:
 
 {% highlight shell %}
-    utsctl reload
+utsctl reload
 {% endhighlight %}
 
 Good Luck :)
