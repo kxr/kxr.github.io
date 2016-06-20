@@ -42,13 +42,13 @@ In case of a 32 bit distro, there are hardly any dependencies to be installed. T
  * libselinux
 
 If you are using a 32 bit distro:
-{% highlight bash %}
+{% highlight shell %}
 yum install glibc libgcc openssl krb5-libs libcom_err zlib keyutils-libs libselinux
 {% endhighlight %}
 
 If you are using a 64bit distro, install the 32bit libraries:
 
-{% highlight bash %}
+{% highlight shell %}
 yum install glibc glibc.i[36]86 libgcc libgcc.i[36]86 openssl openssl.i[36]86 krb5-libs krb5-libs.i[36]86 libcom_err libcom_err.i[36]86 zlib zlib.i[36]86 keyutils-libs keyutils-libs.i[36]86 libselinux libselinux.i[36]86
 {% endhighlight %}
 
@@ -56,7 +56,7 @@ yum install glibc glibc.i[36]86 libgcc libgcc.i[36]86 openssl openssl.i[36]86 kr
 
 I will keep it in /opt (ofcourse you can keep it anywhere you like)
 
-{% highlight bash %}
+{% highlight shell %}
 mkdir /opt/utorrent
 mkdir /opt/utorrent/conf
 mkdir /opt/utorrent/data
@@ -69,7 +69,7 @@ mkdir /opt/utorrent/log
 
 At the time of this writing, µTorrent Server alpha (3.0 build 25053) was the latest available one. You can find the latest release [here](http://www.utorrent.com/downloads/linux). Download the package to a tmp location, extract and then copy the required files:
 
-{% highlight bash %}
+{% highlight shell %}
 wget -O /tmp/utorrent-server-3.0-25053.tar.gz http://download.utorrent.com/linux/utorrent-server-3.0-25053.tar.gz
 tar --directory /tmp -xzf /tmp/utorrent-server-3.0-25053.tar.gz
 cp /tmp/utorrent-server-v3_0/utserver /opt/utorrent/
@@ -90,7 +90,7 @@ Before proceeding further, it will be a good idea to locate any missing librarie
 
 Use ldd command to find out any missing library:
 
-{% highlight bash %}
+{% highlight shell %}
 ldd -r /opt/utorrent/utserver
 {% endhighlight %}
 
