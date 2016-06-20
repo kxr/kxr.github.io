@@ -163,7 +163,7 @@ I've created this config file from the documentation and added all the options I
 
 Here it is (only dir_root is set to /opt/utorrent/data all other values are default):
 
-{% highlight shell %}
+{% highlight conf %}
 ###########################################
 ###                                     ###
 ### Utorrent Server v3.0 Config File    ###
