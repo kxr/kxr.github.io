@@ -172,7 +172,7 @@ pre {
   /*word-wrap: break-word;*/
   word-wrap: normal;
   /*background-color: #f9f9f9;*/
-  background-color: #002b36;
+  /*background-color: #002b36;*/
   overflow: auto;
 }
 pre code {
