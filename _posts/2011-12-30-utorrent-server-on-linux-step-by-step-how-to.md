@@ -46,11 +46,10 @@ If you are using a 32 bit distro:
 yum install glibc libgcc openssl krb5-libs libcom_err zlib keyutils-libs libselinux
 {% endhighlight %}
 
-
 If you are using a 64bit distro, install the 32bit libraries:
 
 {% highlight bash %}
-#> yum install glibc glibc.i[36]86 libgcc libgcc.i[36]86 openssl openssl.i[36]86 krb5-libs krb5-libs.i[36]86 libcom_err libcom_err.i[36]86 zlib zlib.i[36]86 keyutils-libs keyutils-libs.i[36]86 libselinux libselinux.i[36]86
+yum install glibc glibc.i[36]86 libgcc libgcc.i[36]86 openssl openssl.i[36]86 krb5-libs krb5-libs.i[36]86 libcom_err libcom_err.i[36]86 zlib zlib.i[36]86 keyutils-libs keyutils-libs.i[36]86 libselinux libselinux.i[36]86
 {% endhighlight %}
 
 ### Step 1: Make basic directories
@@ -75,6 +74,14 @@ wget -O /tmp/utorrent-server-3.0-25053.tar.gz http://download.utorrent.com/linux
 tar --directory /tmp -xzf /tmp/utorrent-server-3.0-25053.tar.gz
 cp /tmp/utorrent-server-v3_0/utserver /opt/utorrent/
 cp /tmp/utorrent-server-v3_0/webui.zip /opt/utorrent/webui/
+{% endhighlight %}
+
+
+{% highlight python %}
+import urllib2
+print "alpha"
+a = new
+print a
 {% endhighlight %}
 
 ### Step 3: Libraries check
