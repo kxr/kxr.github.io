@@ -3,19 +3,21 @@ layout: default
 title: Home
 ---
 
+
 <div class="posts">
   {% for post in paginator.posts %}
   <div class="post">
-    <h2 class="post-title">
+    <h3 class="post-title">
       <a href="{{ post.url }}">
         {{ post.title }}
       </a>
-    </h2>
+    </h3>
 
     <span class="post-date">{{ post.date | date_to_string }}</span>
 
-    <span> {{ post.excerpt }} </span>
-    <!--{{ post.content }} --!>
+    <span> {{ post.content | strip_html | strip | truncate: 100 }} ..... </span>
+
+    <hr />
   </div>
   {% endfor %}
 </div>
