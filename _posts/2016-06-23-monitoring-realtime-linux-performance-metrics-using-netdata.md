@@ -3,8 +3,6 @@ layout: post
 title: Monitoring Realtime Linux Performance Metrics Using Netdata
 ---
 
-# Overview
-
 I have a huge passion for monitoring, and performance monitoring among all types is the most fascinating one. Just recently a really nice tool named **Netdata** has been released for the Linux platform. A very well thought piece of software that works out of the box on almost any Linux distribution and covers almost all the system metrics that you can think of. It goes into great details as compared to the traditional monitoring tools and gives a very nice and slick web interface using bootstrap dashboards running on node.js.
 
 Here is a quick preview of the tool. Just the web interface makes you fall in love with it: 
