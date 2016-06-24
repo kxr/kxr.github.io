@@ -71,10 +71,9 @@ html {
 }
 
 /* Hide sidbar in mobile view */
-@media screen and (max-width: 600px) {
+@media screen and (max-width: 48rem) {
   .sidebar {
     visibility: hidden;
-    clear: both;
     display: none;
   }
 }
