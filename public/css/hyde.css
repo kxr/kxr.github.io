@@ -70,6 +70,15 @@ html {
   }
 }
 
+/* Hide sidbar in mobile view */
+@media screen and (max-width: 600px) {
+  .sidebar {
+    visibility: hidden;
+    clear: both;
+    display: none;
+  }
+}
+
 /* Sidebar links */
 .sidebar a {
   color: #fff;
