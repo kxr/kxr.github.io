@@ -1,6 +1,6 @@
 ---
 layout: post
-title: AWS Certified Professional Architect Professional Prepartion Notes
+title: AWS Certified Solutions Architect Professional Prepartion Notes
 ---
 
 ## Elastic Compute Cloud (EC2)
