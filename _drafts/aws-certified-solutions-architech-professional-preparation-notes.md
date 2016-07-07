@@ -174,9 +174,17 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 
 ## AWS OpsWorks
 
+- OpsWorks is an integrated configuration management platform for IT administrators and DevOps engineers who want a high degree of customization and control over operations. AWS OpsWorks users leverage Chef recipes to automate operations like software configurations, package installations, database setups, server scaling, and code deployment.
+- OpsWorks support on-premises servers.
+- OpsWorks currently supports Amazon Linux, Ubuntu 12.04 LTS, Ubuntu 14.04 LTS, and Windows Server 2012 R2. You can use your own AMIs, using your own Windows AMIs is not currently supported. 
+- OpsWorks can retrieve the code from Git, Subversion, HTTP and S3 bundles. You can also use Chef recipes to deploy your apps from anywhere you like using rsync or scp.
+- You can create instances in multiple availability zones, and your load balancer will route traffic among your instances. If any instance fails, OpsWorks’ auto healing can replace it
+- The following lifecycle events are supported: Setup (when the instance has successfully booted), Configure (when stack changes state e.g. add instance to LB), Deploy (whenever an application is deployed), Undeploy (when you delete an application), Shutdown (sent to an instance 45 seconds before actually stopping the instance).
+- You cannot use user data to initialize the instance.
+- OpsWorks supports automatic time and load-based instance scaling to adapt the number of running instances to match your load.
+- OpsWorks supports IAM users, permissions, and roles. You can designate permissions by user, including view, deploy, and manage.
+- The pricing for each on-premises server on which you install the OpsWorks agent is $0.02 per hour. There is no additional charge for Amazon EC2 instances supported by AWS OpsWorks.
 
-
-## Amazon Cognito
 
 ## DynamoDB
 
@@ -224,3 +232,5 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 ## Simple Notifications Service (SNS)
 
 ## Lambda 
+
+## Amazon Cognito
