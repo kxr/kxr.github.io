@@ -171,12 +171,10 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - You can use IAM users/policies for restricting access to Beanstalk. Beanstalk offers two templates: a read-only access template and a full-access template. You can allow or deny permissions to specific AWS Elastic Beanstalk resources such as applications, application versions, and environments.
 - You can specify a maintenance window to update Beanstalk environments automatically to the latest version (for new patch and minor platform versions) of the underlying platform running your application. Beanstalk will not automatically perform major platform version updates (you must manually initiate the update).
 - Managed platform updates uses an immutable deployment mechanism to perform the updates, ensuring that no changes are made to the existing environment until a parallel fleet of Amazon EC2 instances, with the updates installed, is ready to be swapped in with the existing instances, which are then terminated.
-- 	
-
-- 
-
 
 ## AWS OpsWorks
+
+
 
 ## Amazon Cognito
 
