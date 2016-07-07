@@ -45,7 +45,6 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - If you upload several multipart object parts, but never commit them, you will still be charged for that storage. Use lifecycle policy that expires incomplete multipart uploads.
 - S3 Transfer Acceleration (applied per bucket) enables fast/secure transfers leveraging Edge Locations. Once enabled, you can point your Amazon S3 PUT/GET requests to the s3-accelerate endpoint domain name e.g: <bucketname>.s3-accelerate.amazonaws.com. It can make storage gateway and/or any 3rd party client that connects to S3 directly perform faster. If objects/data set are smaller than 1GB, consider CloudFront's PUT/POST commands for optimal performance.
 
-
 ## Virtual Private Cloud (VPC)
 
 - Internet gateway is horizontally-scaled, redundant, and highly available, imposes no bandwidth constraints.
@@ -73,8 +72,8 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - You cannot connect to internet using Direct Connect.
 - When creating a virtual interface to work with AWS services using public IP space (a.k.a. public virtual interface), you will receive all Amazon IP prefixes for the region that you are connecting to. Direct Connect customers in the US will receive the public IP prefixes for all US Regions.
 
-
 ## Relational Database Service (RDS)
+
 - By default, there is a limit of a total of 40 RDS DB instances (OnDemand/Reserved). Of those 40, up to 10 can be Oracle or SQL Server DB Instances under the "License Included" model.
 - Oracle RDS limits you to 1 DB per RDS instance (no limit on schemas/DB), SQL Server has a limit of 30 databases per instance. Aurora, MySQL, MariaDB, PostgreSQL impose no software limit.
 - You can access the MySQL slow query logs for your database by setting the "slow_query_log" DB Parameter and querying the mysql.slow_log table.
@@ -89,7 +88,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - During the backup window, storage I/O may be briefly suspended while the backup process initializes (typically under a few seconds). There is no I/O suspension for Multi-AZ deployments.
 - Automated backups can be turned off by setting the retention period to 0. Automated backups are deleted when the DB Instance is deleted, manual snapshots or final deletion snapshot are reatained.
 - It is strongly recommended to use the DNS Name to connect to your DB Instance as the underlying IP address can change (e.g., during a failover).
-- (?) Explicitly changing the DB Subnet Group of a deployed DB instance is not currently allowed.
+- You can update/modify a DB Subnet Group but explicitly changing the DB Subnet Group of a deployed DB instance is not currently allowed.
 - You can encrypt DB connections using SSL. Amazon RDS generates an SSL certificate for each DB Instance.
 - Amazon RDS supports encryption at rest for all database engines, using KMS. Currently encrypting an existing DB Instance is not supported.
 - MultiAZ replication is synchronous, read replica replication is asynchronous.
@@ -210,6 +209,9 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - Scan operation iterates over items with 1 MB size limit of items scanned per operation.
 
 ## ElastiCache
+
+- You can update an existing Cache Subnet Group but changing the Cache Subnet Group of a deployed Cache Cluster is not currently allowed.
+- 
 
 ## Elastic MapReduce
 
