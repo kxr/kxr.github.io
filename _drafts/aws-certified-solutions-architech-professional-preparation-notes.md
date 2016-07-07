@@ -141,11 +141,40 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 
 ## CloudFront
 
-
+- Geo Restriction feature lets you specify a list of countries in which your users can or cannot access your content. CloudFront responds with 403 to a request from a restricted country.
+- You can use SSL certificates managed by ACM or your own purchased ones (by uploadig them to IAM certificate store).
+- You can configure CloudFront to add custom headers, or override existing headers, to requests forwarded to your origin.
+- Invalidation requests invalidate the cached objects from the edge locations. Invalidation requests are charged. There is a limit on concurrent invalidation requests.
+- You should use invalidation only in unexpected circumstances; if you know beforehand that your files will need to be removed from cache frequently, it is recommended that you either implement a versioning system for your files and/or set a short expiration period.
+- Streaming Summary: If you have media files HLS format or Microsoft Smooth Streaming format prior to storing in Amazon S3 (or a custom origin), you can use an Amazon CloudFront web distribution to stream in that format without having to run any media servers. In addition you can also run a third party streaming server (e.g. Wowza Media Server available on AWS Marketplace) on Amazon EC2 which can convert a media file to the required HTTP streaming format. This server can then be designated as the origin for an Amazon CloudFront web distribution. Another option, if you want to stream using RTMP, is to store your media files on Amazon S3 and use it as the origin for an Amazon CloudFront RTMP distribution.
+- You can enable access logging to write detailed log information in a W3C extended format into S3, containing detailed information about each request, including: object requested, edge location, client IP, referrer, user agent, cookie header, and result type (cache hit/miss/error).
 
 ## CloudFormation
 
+- CloudFormation provides a WaitCondition resource that acts as a barrier, blocking the creation of other resources until a completion signal is received from an external source such as your application, or management system.
+- CloudFormation provides three deletion policies: Delete (any resource), Retain (any resource) and Snapshot (EC2/RDS/RedShift).
+- During a stack update, you cannot add or update a DeletionPolicy by itself. You can add or update a DeletionPolicy only when you include changes that add, modify, or delete resources. If you need to add or modify a DeletionPolicy and don't want to make any changes to a resource, you can use a dummy resource, such as AWS::CloudFormation::WaitConditionHandle.
+
 ## Elastic BeanStalk
+
+- General use case: Beanstalk makes it easier for developers to quickly deploy and manage applications in the AWS cloud without experience in cloud computing.
+- Beanstalk supports Java, .NET, PHP, Node.js, Python, Ruby, Go, and Docker web applications.
+- The current version of AWS Elastic Beanstalk uses the Amazon Linux AMI or the Windows Server 2012 R2 AMI.
+- You can: Choose OS, Choose database and storage options, Enable login access to Amazon EC2, run in more than one AZ, Use HTTPS on ELB, Access built-in CloudWatch monitoring, Adjust application server settings, pass environment variables, Run custom appliactions like memcache in EC2, Access log files without logging in to the application servers.
+- When updating Elastic Beanstalk with Git deployment, only the modified files are transmitted to AWS Elastic Beanstalk and updates typically take a few seconds.
+- Application can be configured to automatically scale tens or even hundreds of times based on thresholds such as CPU utilization or network bandwidth.
+- If an underlying EC2 instance fails for any reason, AWS Elastic Beanstalk will use Auto Scaling to automatically launch a new instance.
+- Beanstalk stores your application files and optionally server log files in S3. S3 bucket will be automatically created for you and the uploaded files will be automatically copied from your local client to Amazon S3.
+- You may configure Elastic Beanstalk to copy your server log files every hour to Amazon S3. You do this by editing the environment configuration settings.
+- Beanstalk can automatically provision an RDS DB Instance. The connectivity information to the DB Instance is exposed to your application by environment variables.
+- By default, your application is available publicly at myapp.elasticbeanstalk.com for anyone to access. You can add restrictions using security group rules, network ACLs, and custom route tables.
+- You can use IAM users/policies for restricting access to Beanstalk. Beanstalk offers two templates: a read-only access template and a full-access template. You can allow or deny permissions to specific AWS Elastic Beanstalk resources such as applications, application versions, and environments.
+- You can specify a maintenance window to update Beanstalk environments automatically to the latest version (for new patch and minor platform versions) of the underlying platform running your application. Beanstalk will not automatically perform major platform version updates (you must manually initiate the update).
+- Managed platform updates uses an immutable deployment mechanism to perform the updates, ensuring that no changes are made to the existing environment until a parallel fleet of Amazon EC2 instances, with the updates installed, is ready to be swapped in with the existing instances, which are then terminated.
+- 	
+
+- 
+
 
 ## AWS OpsWorks
 
