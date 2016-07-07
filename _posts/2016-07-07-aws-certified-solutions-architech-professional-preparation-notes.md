@@ -44,6 +44,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - Objects are past their expiration date are queued for removal. You will not be billed for objects after their expiration date, though the objects might be accessible while they are in queue before they are removed.
 - If you upload several multipart object parts, but never commit them, you will still be charged for that storage. Use lifecycle policy that expires incomplete multipart uploads.
 - S3 Transfer Acceleration (applied per bucket) enables fast/secure transfers leveraging Edge Locations. Once enabled, you can point your Amazon S3 PUT/GET requests to the s3-accelerate endpoint domain name e.g: <bucketname>.s3-accelerate.amazonaws.com. It can make storage gateway and/or any 3rd party client that connects to S3 directly perform faster. If objects/data set are smaller than 1GB, consider CloudFront's PUT/POST commands for optimal performance.
+- When hosting a static website on S3, you need to enable CORS (Cross Origin Resource Sharing) if you want your website to call external domains.
 
 ## Virtual Private Cloud (VPC)
 
@@ -211,7 +212,28 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 ## ElastiCache
 
 - You can update an existing Cache Subnet Group but changing the Cache Subnet Group of a deployed Cache Cluster is not currently allowed.
+
+### Memecached
+
+- You can run a maximum of 50 Cache Nodes per region. 
+- You can associate an SNS topic with your Cache Cluster while creating it. You'll receive cluster notifications of this topic for e.g. Cache Node recovery occurred etc.
+- You could add more Cache Nodes to your existing Cache Cluster by using the "Add Node" option on "Nodes" tab for your Cache Cluster 
+- For each cluster amazon will create a unique configuration endpoint (DNS record) that can be queried to get the nodes that belong in that cluster. An Auto Discovery capable memecache client (provided by Amazon for Java and PHP), can use this feature to discover all nodes in the cluster. It will automtically discover addition/deletion/failure of cluster nodes. You will not get the Auto Discovery feature with the existing Memcached clients.
 - 
+
+### Redis
+
+- ElastiCache for Redis node may take on a primary or a read replica role. A primary node can be replicated to multiple read replica nodes. An ElastiCache for Redis cluster is a collection of one or more ElastiCache for Redis nodes of the same role; the primary node will be in the primary cluster and the read replica node will be in a read replica cluster. An ElastiCache for Redis replication group encapsulates the primary and read replica clusters for a Redis installation. A replication group will have only one primary cluster and zero or many read replica clusters. All nodes within a replication group (and consequently cluster) will be of the same node type, and have the same parameter and security group settings.
+- You can achieve persistence by snapshotting your Redis data using the Backup and Restore feature.
+- Read Replicas serve two purposes in Redis: Failure Handing and Read Scaling.
+- Your read replica may only be provisioned in the same or different Availability Zone of the same Region as your cache node primary.
+- ElastiCache allows you to create up to five (5) read replicas for a given primary cache node.
+- Creating a read replica of another read replica is not supported.
+- Read Replicas use Redis’s asynchronous replication technology.
+- If an existing read replica has fallen too far behind to meet your requirements, you can reboot it.
+- You can use Multi-AZ if you are using ElastiCache for Redis and have a replication group consisting of a primary node and one or more read replicas. If the primary node fails, ElastiCache will automatically detect the failure, select one from the available read replicas(with the smallest asynchronous replication lag), and promote it to become the new primary.
+- In a Replication Group, you can choose to backup the primary or any of the read-replica clusters.
+- You can specify the S3 location of your RDB file during cluster creation to use your own RDB snapshots.
 
 ## Elastic MapReduce
 
