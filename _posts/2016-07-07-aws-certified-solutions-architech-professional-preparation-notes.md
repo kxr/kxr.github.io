@@ -40,6 +40,8 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - Amazon S3 objects that are stored using the Amazon Glacier option are only accessible through the Amazon S3 APIs or Amazon S3 Management Console but not using Amazon Glacier APIs.
 - Typical restore from glacier takes 3 to 5 hours. The restore request creates a temporary copy of the data in RRS. You can specify the amount of time in days for which the temporary copy is stored in RRS.
 - CRR (Cross-Region Replication) is a bucket-level configuration, that replicates every object uploaded to a destination bucket in a different AWS region that you choose. You can chose to replicate subset of the objects in a bucket by specifying prefixes. Existing data in the bucket prior to enabling CRR is not replicated.
+- CRR replicates: new objects, ACL updates, DELETE without version ID, SSE objects with S3-managed encryption key.
+- CRR doesn't replicate: DELETE with version ID, SSE-C or SSE-KMS encrypted objects, lifecycle configurations, replica objects (if CRR is setup as A -> B -> C, objects replicted from A to B won't be replicated to C).
 - S3 event notifications can be sent through Amazon SNS, Amazon SQS, or directly to AWS Lambda.
 - Objects are past their expiration date are queued for removal. You will not be billed for objects after their expiration date, though the objects might be accessible while they are in queue before they are removed.
 - If you upload several multipart object parts, but never commit them, you will still be charged for that storage. Use lifecycle policy that expires incomplete multipart uploads.
@@ -253,6 +255,12 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - The Permissions API provides a simple interface for developers to share access to a queue but it cannot allow for conditional access and more advanced use cases. The SetQueueAttributes operation supports the full access policy language.
 - SQS in each region is totally independent in message stores and queue names. 
 
+## Simple Workflow Service (SWF)
+
+- Amazon SWF presents a task-oriented API, whereas Amazon SQS offers a message-oriented API.
+- SWF ensures that a task is assigned only once and is never duplicated.
+- 
+
 ## Elastic MapReduce
 
 ## Kinesis
@@ -268,7 +276,6 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 
 ## Simple Email Service (SES)
 
-## Simple Workflow Service (SWF)
 
 ## Simple Notifications Service (SNS)
 
