@@ -219,7 +219,6 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - You can associate an SNS topic with your Cache Cluster while creating it. You'll receive cluster notifications of this topic for e.g. Cache Node recovery occurred etc.
 - You could add more Cache Nodes to your existing Cache Cluster by using the "Add Node" option on "Nodes" tab for your Cache Cluster 
 - For each cluster amazon will create a unique configuration endpoint (DNS record) that can be queried to get the nodes that belong in that cluster. An Auto Discovery capable memecache client (provided by Amazon for Java and PHP), can use this feature to discover all nodes in the cluster. It will automtically discover addition/deletion/failure of cluster nodes. You will not get the Auto Discovery feature with the existing Memcached clients.
-- 
 
 ### Redis
 
@@ -233,7 +232,26 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - If an existing read replica has fallen too far behind to meet your requirements, you can reboot it.
 - You can use Multi-AZ if you are using ElastiCache for Redis and have a replication group consisting of a primary node and one or more read replicas. If the primary node fails, ElastiCache will automatically detect the failure, select one from the available read replicas(with the smallest asynchronous replication lag), and promote it to become the new primary.
 - In a Replication Group, you can choose to backup the primary or any of the read-replica clusters.
-- You can specify the S3 location of your RDB file during cluster creation to use your own RDB snapshots.
+- You can specify the S3 location of your RDB file during cluster creation to use your own RDB snapshots to seed the cluster.
+
+## Simple Queue Service (SQS)
+
+- SQS message retention period is configurable and can be set anywhere from 1 minute to 2 weeks. The default is 4 days and once the message retention limit is reached your messages will be automatically deleted.
+- SQS Doesn't guarentee the order. If order is critical, you should place sequencing information to order it your self.
+- Amazon SQS supports up to 12 hours maximum visibility timeout.
+- Amazon SQS allows you to send up to 10 attributes (meta data) on each message apart from the message body.
+- Using long polling may reduce the cost of using SQS, as you can reduce the number of empty receives.
+- If your application has a single thread polling multiple queues, switching from short polling to long polling will likely not work, as the single thread will wait for the long poll timeout on any empty queues, delaying the processing of any queues which may contain messages.
+- The maximum long poll timeout is 20 seconds.
+- AmazonSQSBufferedAsync client (only supported for Java) supports automatic batching of multiple SendMessage, DeleteMessage or ChangeMessageVisibility requests into batches of each type, without any changes required by the application. Additionally, it supports prefetching of messages into a local buffer. Overall it increases the throughput and reduces the latency of your application, while saving you money by making fewer SQS requests.
+- You can subscribe one or multiple SQS queues to SNS topic. SNS will deliver the message to all the SQS queues that are subscribed to the topic.
+- Amazon SQS has its own resource-based permissions system identical to IAM.
+- After a message is read from a queue, it will not be visible to any other reader until the configured visibility timeout. During which it should be processed and deleted. If the component processing the message fails, the message will again become visible to any component reading the queue once the visibility timeout ends. 
+- If you issue a DeleteMessage request on a previously deleted message,  SQS returns a "success" response.
+- You can set the MaximumMessageSize attribute anywhere from 1024 bytes (1KB), up to 262144 bytes (256KB) to configure the maximum message size.
+- Typically, you set up a DLQ to receive messages after a max number of processing atttempts have been reached. DLQs provides the ability to isolate messages that could not be processed for later analysis.
+- The Permissions API provides a simple interface for developers to share access to a queue but it cannot allow for conditional access and more advanced use cases. The SetQueueAttributes operation supports the full access policy language.
+- SQS in each region is totally independent in message stores and queue names. 
 
 ## Elastic MapReduce
 
@@ -247,7 +265,6 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 
 ## CloudWatch 
 
-## Simple Queue Service (SQS)
 
 ## Simple Email Service (SES)
 
