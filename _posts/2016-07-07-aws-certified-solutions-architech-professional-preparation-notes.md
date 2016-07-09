@@ -42,11 +42,17 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - CRR (Cross-Region Replication) is a bucket-level configuration, that replicates every object uploaded to a destination bucket in a different AWS region that you choose. You can chose to replicate subset of the objects in a bucket by specifying prefixes. Existing data in the bucket prior to enabling CRR is not replicated.
 - CRR replicates: new objects, ACL updates, DELETE without version ID, SSE objects with S3-managed encryption key.
 - CRR doesn't replicate: DELETE with version ID, SSE-C or SSE-KMS encrypted objects, lifecycle configurations, replica objects (if CRR is setup as A -> B -> C, objects replicted from A to B won't be replicated to C).
+- CRR can be enabled back in a loop i.e. from A -> B and from B -> A. Note: replica objects will not be replicated only newer objects created in each bucket will be replicated.
+- CRR requires versioning to be enabled on both the source and destination bucket.
+- CRR can be cross account, you should create 
 - S3 event notifications can be sent through Amazon SNS, Amazon SQS, or directly to AWS Lambda.
 - Objects are past their expiration date are queued for removal. You will not be billed for objects after their expiration date, though the objects might be accessible while they are in queue before they are removed.
 - If you upload several multipart object parts, but never commit them, you will still be charged for that storage. Use lifecycle policy that expires incomplete multipart uploads.
 - S3 Transfer Acceleration (applied per bucket) enables fast/secure transfers leveraging Edge Locations. Once enabled, you can point your Amazon S3 PUT/GET requests to the s3-accelerate endpoint domain name e.g: <bucketname>.s3-accelerate.amazonaws.com. It can make storage gateway and/or any 3rd party client that connects to S3 directly perform faster. If objects/data set are smaller than 1GB, consider CloudFront's PUT/POST commands for optimal performance.
 - When hosting a static website on S3, you need to enable CORS (Cross Origin Resource Sharing) if you want your website to call external domains.
+- You can track bucket level operation using cloud trail and additionally use cloud watch with cloud trail e.g. get notified when the buckets get deleted or life cycle policy get changed.
+- S3 has storage metrics in cloud watch available where by you can see metrics like total objects, total bytes in RRS/IA/Std/Glacier storage class etc. You can additionally setup alarms on these metrics. These metrics are emitted daily.
+	
 
 ## Virtual Private Cloud (VPC)
 
