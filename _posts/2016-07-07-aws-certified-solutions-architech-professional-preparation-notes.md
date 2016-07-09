@@ -45,6 +45,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - CRR can be enabled back in a loop i.e. from A -> B and from B -> A. Note: replica objects will not be replicated only newer objects created in each bucket will be replicated.
 - CRR requires versioning to be enabled on both the source and destination bucket.
 - CRR can be cross account, you should create 
+- CRR replication status can be seen on x-amz-replication-status header when calling GET/HEAD on the replication enabled object. The values can be PENDING, COMPLETED, or FAILED.
 - S3 event notifications can be sent through Amazon SNS, Amazon SQS, or directly to AWS Lambda.
 - Objects are past their expiration date are queued for removal. You will not be billed for objects after their expiration date, though the objects might be accessible while they are in queue before they are removed.
 - If you upload several multipart object parts, but never commit them, you will still be charged for that storage. Use lifecycle policy that expires incomplete multipart uploads.
@@ -270,6 +271,22 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 ## Elastic MapReduce
 
 ## Kinesis
+
+- Kinesis Streams synchronously replicates data across three facilities in an AWS Region, providing high availability and data durability.
+- Typical scenarios: Accelerated/Continuous/Realtime log/data feed intake, Order critical data like appliaction logs or billing records, Real-time metrics and reporting, Real-time data analytics and Complex stream processing (You can create Directed Acyclic Graphs (DAGs) of Amazon Kinesis Applications and data streams. In this scenario, one or more Amazon Kinesis Applications can add data to another Amazon Kinesis stream for further processing, enabling successive stages of stream processing).
+- By default, Records of a stream are accessible for up to 24 hours from the time they are added to the stream. You can raise this limit to up to 7 days by enabling extended data retention.
+- The maximum size of a data blob (the data payload before Base64-encoding) within one record is 1 MB.
+- Each shard provides a capacity of 1MB/sec data input and 2MB/sec data output and can support up to 1000 PUT records per second. You can monitor shard-level metrics in Amazon Kinesis Streams and add or remove shards from your stream dynamically as your data throughput changes by resharding the stream.
+- Partition key is used to segregate and route records to different shards of a stream.
+- You can add data to Kinesis stream via PutRecord and PutRecords operations, Kinesis Producer Library (KPL), or Kinesis Agent (java based application available for Amazon Linux/RHEL).
+- Kinesis Application is a data consumer that reads and processes data from an Amazon Kinesis stream.
+- Kinesis Client Library (KCL) for Java | Python | Ruby | Node.js | .NET is a pre-built library that helps you easily build Amazon Kinesis Applications for reading and processing data from an Amazon Kinesis stream
+- Kinesis Connector Library is a pre-built library (built on top of KCL) that integrates Kinesis with other AWS services and third-party tools e.g. DynamoDB, Redshift, S3, and Elasticsearch.
+- Kinesis Storm Spout is a pre-built library that helps you easily integrate Amazon Kinesis Streams with Apache Storm.
+- One record processor maps to one shard and processes records from that shard.
+- An application calls KCL (with configuration such as the stream name and AWS credentials) to instantiate a worker. This call also passes a reference to an IRecordProcessorFactory implementation. KCL uses this factory to create new record processors as needed to process data from the stream. KCL communicates with these record processors using the IRecordProcessor interface.
+- KCL automatically creates DynamoDB table for each Kinesis Application to track and maintain state information such as resharding events and sequence number checkpoints. The DynamoDB table shares the same name with the application so that you need to make sure your application name doesn’t conflict with any existing DynamoDB tables under the same account within the same region.
+
 
 ## Data Pipeline
 
