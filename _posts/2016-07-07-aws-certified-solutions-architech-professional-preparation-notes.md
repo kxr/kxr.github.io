@@ -17,6 +17,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - 5 Elastic IP addresses per region limit, which can be increased. ElasticIPs are charged when not associated to a running instance.
 - One Availability Zone name (for example, us-east-1a) in two AWS customer accounts may relate to different physical Availability Zones.
 - Enhanced networking support is available for selected instances types using SR-IOV. It is only available in HVM virtualization. X1 instances use Elastic Network Adapter (ENA) interface which uses "ena" linux driver. C3, C4, R3, I2, M4 and D2 instances use Intel 82599g Virtual Function Interface, which uses the “ixgbevf” Linux driver. These drivers are there by default in Amazon Linux AMI. Instructions for Linux/Windows AMI that do not have these drivers are available.
+- A placement group can span peered VPCs; however, you will not get full-bisection bandwidth between instances in peered VPCs.
 - Snapshots are only available through the Amazon EC2 APIs, not through S3 APIs.
 - Auto Scaling Service cannot scale past the Amazon EC2 limit of instances that you can run.
 - If you delete an Auto Scaling group, the instances will be terminated.
