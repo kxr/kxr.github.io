@@ -13,6 +13,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - There is a limit of number of on-demand and reserved instances that can be run. Overall, you are limited to running up to 20 On-Demand instances, purchasing 20 Reserved Instances, and requesting Spot Instances. The limit is also per instance type. For all instances type, reserved limit is 20 and on-demand limit varies from 2 (for larger instaces like i2.8xlarge) to 20 (for smaller instances like t2.micro). The limits can be increased by contacting Amazon. 
 - All the hardware underlying Amazon EC2 uses ECC memory.
 - M4/C4 instance types do not have instance store (EBS only), where as M3/C3 instance types does.
+- D2 instancy type provides lowest cost per disk throughput performance.
 - 5 Elastic IP addresses per region limit, which can be increased. ElasticIPs are charged when not associated to a running instance.
 - One Availability Zone name (for example, us-east-1a) in two AWS customer accounts may relate to different physical Availability Zones.
 - Enhanced networking support is available for selected instances types using SR-IOV. It is only available in HVM virtualization. X1 instances use Elastic Network Adapter (ENA) interface which uses "ena" linux driver. C3, C4, R3, I2, M4 and D2 instances use Intel 82599g Virtual Function Interface, which uses the “ixgbevf” Linux driver. These drivers are there by default in Amazon Linux AMI. Instructions for Linux/Windows AMI that do not have these drivers are available.
@@ -133,6 +134,8 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - Temporary security credential cannot be revoked prior to its expiration. However if the request was made by an IAM user, you can revoke permissions of that IAM user, which will revoke privileges for all temporary security credentials issued by that IAM user.
 - There is no limit to the number of federated users who can be given access to the console.
 - MFA-protected API access is supported by all AWS services that support temporary security credentials.
+- The following API calls return temporary security credentials: AssumeRole(15m/1hr/1hr), AssumeRoleWithSAML(15m/1hr/1hr), AssumeRoleWithWebIdentity(15m/1hr/1hr), GetFederationToken(IAMuser:15m/36hr/12hr Root:15m/1hr/1hr), GetSessionToken(IAMuser:15m/36hr/12hr Root:15m/1hr/1hr).
+- 
 
 ## Route53
 
@@ -189,6 +192,8 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - OpsWorks can retrieve the code from Git, Subversion, HTTP and S3 bundles. You can also use Chef recipes to deploy your apps from anywhere you like using rsync or scp.
 - You can create instances in multiple availability zones, and your load balancer will route traffic among your instances. If any instance fails, OpsWorks’ auto healing can replace it
 - The following lifecycle events are supported: Setup (when the instance has successfully booted), Configure (when stack changes state e.g. add instance to LB), Deploy (whenever an application is deployed), Undeploy (when you delete an application), Shutdown (sent to an instance 45 seconds before actually stopping the instance).
+- Rebooting an instance does not trigger any lifecycle events.
+- Configure event occurs on all of the stack's instances when one of the following occurs: An instance enters/leaves the online state, add/remove EIP, Attach/detache ELB to a layer.
 - You cannot use user data to initialize the instance.
 - OpsWorks supports automatic time and load-based instance scaling to adapt the number of running instances to match your load.
 - OpsWorks supports IAM users, permissions, and roles. You can designate permissions by user, including view, deploy, and manage.
