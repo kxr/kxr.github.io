@@ -29,6 +29,8 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - Spot instances can be launched with a guarentee of upto 6 hours runtime (Block duration).
 - ELB supports IPv6. Each Elastic Load Balancer has an associated IPv4, IPv6, and dualstack (both IPv4 and IPv6) DNS name, However, IPv6 is not supported in VPC at this time.
 - ELB supports AMIs from AWS Marketplace but not from Amazon DevPay site.
+- You can't merge placement groups. Instead, you must terminate the instances in one placement group, and then relaunch those instances into the other placement group.
+- When launching an instance you can specify the ENI to attach to the instance for both the primary (eth0) and additional elastic network interfaces.
 
 ## Simple Storage Service (S3)
 
@@ -60,6 +62,13 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - http://docs.aws.amazon.com/AmazonS3/latest/dev/access-control-auth-workflow-bucket-operation.html
 - All data in the Glacier will be encrypted on the server side. Glacier handles key management and key protection. Customers wishing to manage their own keys can encrypt data prior to uploading it.
 - You can retrieve a specific range of an archive from Glacier. Range retrievals are similar to regular retrievals in Amazon Glacier. Both require the initiation of a retrieval job that typically completes within 3-5 hours. You can use range retrievals to reduce or eliminate your retrieval fees. Using range retrievals, you provide a byte range that can start at zero (beginning), or at any 1MB interval thereafter (e.g. 1MB, 2MB, 3MB, etc).
+- By default, all Amazon S3 resources are private. Only a resource owner can access the resource. The resource owner refers to the AWS account that creates the resource. For example:
+The AWS account that you use to create buckets and objects owns those resources.
+If you create an AWS Identity and Access Management (IAM) user in your AWS account, your AWS account is the parent owner. If the IAM user uploads an object, the parent account, to which the user belongs, owns the object.
+A bucket owner can grant cross-account permissions to another AWS account (or users in another account) to upload objects. In this
+case, the AWS account that uploads objects owns those objects. The bucket owner does not have permissions on the objects that other accounts own, with the following exceptions:
+The bucket owner pays the bills. The bucket owner can deny access to any objects, or delete any objects in the bucket, regardless of who owns them.
+The bucket owner can archive any objects or restore archived objects regardless of who owns them. Archival refers to the storage class used to store the objects. For more information, see Object Lifecycle Management."
 
 	
 
@@ -149,6 +158,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 ## Route53
 
 - You can create multiple hosted zones for the same domain name. e.g. hosted zone Z1234 can be a test version of example.com hosted on name servers ns-1, ns-2, ns-3, and ns-4. Similarly, hosted zone Z5678 can be your production version of example.com, hosted on ns-5, ns-6, ns-7, and ns-8. Route 53 will answer DNS queries for example.com differently depending on which name server you send the DNS query to.
+- You can use Route 53 to configure split-view DNS / split-horizon DNS. You can create internal and external versions of the same website or application (e.g. for testing), you can configure public and private hosted zones to return different internal and external IP addresses for the same domain name.
 - Route 53 support wildcard entries e.g. \*.example.com.
 - Route 53 does not support DNSSEC at this time.
 - Route 53 supports both forward (AAAA) and reverse (PTR) IPv6 records. However, the Route 53 service itself is not available over IPv6 at this time.
@@ -171,6 +181,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - You can enable access logging to write detailed log information in a W3C extended format into S3, containing detailed information about each request, including: object requested, edge location, client IP, referrer, user agent, cookie header, and result type (cache hit/miss/error).
 - Signed URLs use cases: RTMP distribution (signed cookies aren't supported for RTMP distributions), Restrict access to individual files, Client doesn't support cookies.
 - Signed Cookies use cases: Provide access to multiple restricted files, You don't want to change your current URLs.
+- A cache behavior lets you configure a variety of CloudFront functionality for a given URL path pattern for files on your website.
 
 ## CloudFormation
 
@@ -209,6 +220,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - OpsWorks supports automatic time and load-based instance scaling to adapt the number of running instances to match your load.
 - OpsWorks supports IAM users, permissions, and roles. You can designate permissions by user, including view, deploy, and manage.
 - The pricing for each on-premises server on which you install the OpsWorks agent is $0.02 per hour. There is no additional charge for Amazon EC2 instances supported by AWS OpsWorks.
+- Upgrade Operating System (Linux only) Upgrades the instance's Amazon Linux or RHEL operating systems to the latest version.
 
 
 ## DynamoDB
@@ -233,6 +245,9 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - DynamoDB support conditional operations, you can specify a condition that must be satisfied for a put, update, or delete operation to be completed on an item.
 - DynamoDB allows atomic increment and decrement operations on scalar values.
 - Scan operation iterates over items with 1 MB size limit of items scanned per operation.
+- For Query and Scan calls, DynamoDB uses the cumulative size of the processed items to calculate provisioned throughput.
+- When uploading data to a table, you get better performance if you upload data to all the allocated servers (DynamoDB partitions your table data on multiple servers) simultaneously. To fully utilize all of the throughput capacity that has been provisioned for your tables, you need to distribute your workload across your hash attribute values.
+- DynamoDB provides some flexibility in the per-partition throughput provisioning. When you are not fully utilizing a partition's throughput, DynamoDB reserves a portion of your unused capacity for later "bursts" of throughput usage. This reserved throughput can be consumed even faster than the provisioned throughput capacity. You should not design your application dependent on burst capacity being available at all times. DynamoDB can and does use burst capacity for background maintenance and other tasks without prior notice.
 
 ## ElastiCache
 
@@ -256,6 +271,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - Read Replicas use Redis’s asynchronous replication technology.
 - If an existing read replica has fallen too far behind to meet your requirements, you can reboot it.
 - You can use Multi-AZ if you are using ElastiCache for Redis and have a replication group consisting of a primary node and one or more read replicas. If the primary node fails, ElastiCache will automatically detect the failure, select one from the available read replicas(with the smallest asynchronous replication lag), and promote it to become the new primary.
+- A customer-initiated reboot of a primary cluster does not trigger automatic failover. Other reboots and failures do trigger automatic failover.
 - In a Replication Group, you can choose to backup the primary or any of the read-replica clusters.
 - You can specify the S3 location of your RDB file during cluster creation to use your own RDB snapshots to seed the cluster.
 
@@ -292,7 +308,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - Typical scenarios: Accelerated/Continuous/Realtime log/data feed intake, Order critical data like appliaction logs or billing records, Real-time metrics and reporting, Real-time data analytics and Complex stream processing (You can create Directed Acyclic Graphs (DAGs) of Amazon Kinesis Applications and data streams. In this scenario, one or more Amazon Kinesis Applications can add data to another Amazon Kinesis stream for further processing, enabling successive stages of stream processing).
 - By default, Records of a stream are accessible for up to 24 hours from the time they are added to the stream. You can raise this limit to up to 7 days by enabling extended data retention.
 - The maximum size of a data blob (the data payload before Base64-encoding) within one record is 1 MB.
-- Each shard provides a capacity of 1MB/sec data input and 2MB/sec data output and can support up to 1000 PUT records per second. You can monitor shard-level metrics in Amazon Kinesis Streams and add or remove shards from your stream dynamically as your data throughput changes by resharding the stream.
+- Each shard provides a capacity of 1MB/sec (1000 TPS max) data input and 2MB/sec (5 TPS max) data output. You can monitor shard-level metrics in Amazon Kinesis Streams and add or remove shards from your stream dynamically as your data throughput changes by resharding the stream.
 - Partition key is used to segregate and route records to different shards of a stream.
 - You can add data to Kinesis stream via PutRecord and PutRecords operations, Kinesis Producer Library (KPL), or Kinesis Agent (java based application available for Amazon Linux/RHEL).
 - Kinesis Application is a data consumer that reads and processes data from an Amazon Kinesis stream.
