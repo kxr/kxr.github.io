@@ -37,6 +37,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - Any publicly available data in Amazon S3 can be downloaded via the BitTorrent protocol by adding the ?torrent parameter at the end of the GET request.
 - S3 data storage is calculated in TimedStorage-ByteHrs which are added up at the end of the month.
 - Data at rest can be encrypted by using SSE-S3, SSE-KMS or SSE-C (Server Side Encryption with Customer-Provide Keys) via Amazon provided encryption technology; Alternatively you can use your own encryption libraries to encrypt data before storing.
+- S3 stores objects lexicographically (alphabetical order) based on key name. Using a sequential prefix (e.g. timestamp) increases the likelihood that S3 will only target a specific partition, overwhelming the I/O capacity of the partition. Introducing some randomness in your key name/prefixes, will cause S3 to distribute across multiple partitions.
 - Access can be restricted based on an aspect of the request, such as HTTP referrer and IP address.
 - Data that is deleted from Standard - IA within 30 days will be charged for a full 30 days.
 - Amazon S3 objects that are stored using the Amazon Glacier option are only accessible through the Amazon S3 APIs or Amazon S3 Management Console but not using Amazon Glacier APIs.
@@ -55,6 +56,11 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - When hosting a static website on S3, you need to enable CORS (Cross Origin Resource Sharing) if you want your website to call external domains.
 - You can track bucket level operation using cloud trail and additionally use cloud watch with cloud trail e.g. get notified when the buckets get deleted or life cycle policy get changed.
 - S3 has storage metrics in cloud watch available where by you can see metrics like total objects, total bytes in RRS/IA/Std/Glacier storage class etc. You can additionally setup alarms on these metrics. These metrics are emitted daily.
+- Retrieving an archive from Glacier is a two-step process: Initiate an archive retrieval job; After the job completes, download the bytes.
+- http://docs.aws.amazon.com/AmazonS3/latest/dev/access-control-auth-workflow-bucket-operation.html
+- All data in the Glacier will be encrypted on the server side. Glacier handles key management and key protection. Customers wishing to manage their own keys can encrypt data prior to uploading it.
+- You can retrieve a specific range of an archive from Glacier. Range retrievals are similar to regular retrievals in Amazon Glacier. Both require the initiation of a retrieval job that typically completes within 3-5 hours. You can use range retrievals to reduce or eliminate your retrieval fees. Using range retrievals, you provide a byte range that can start at zero (beginning), or at any 1MB interval thereafter (e.g. 1MB, 2MB, 3MB, etc).
+
 	
 
 ## Virtual Private Cloud (VPC)
@@ -71,6 +77,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - An IP address assigned to a running instance can only be used again by another instance once that original running instance is in a terminated state.
 - You cannot assign IP addresses for multiple instances simultaneously, You can specify the IP address of one instance at a time when launching the instance.
 - Public IPs can only be assigned to instances with one network interface.
+- You can attach an ENI in one subnet to an instance in another subnet in the same VPC; however, both the elastic network interface and the instance must reside in the same Availability Zone.
 - You can assigne multiple EIP addresses to EC2 instances. EIP addresses should only be used on instances in subnets configured to route their traffic directly to the Internet gateway. EIPs cannot be used on instances in subnets configured to use a NAT.
 - You can create a default route for each subnet. The default route can direct traffic to egress the VPC via the IGW/VPG/NAT.
 - Peering connections are only available between VPCs in the same region. Peering can be done with VPC in a different AWS account. Peered VPCs must have non-overlapping IP ranges.
@@ -99,6 +106,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - When you perform a restore operation to a point in time or from a DB Snapshot, a new DB Instance is created with a new endpoint, the old DB Instance can be deleted.
 - During the backup window, storage I/O may be briefly suspended while the backup process initializes (typically under a few seconds). There is no I/O suspension for Multi-AZ deployments.
 - Automated backups can be turned off by setting the retention period to 0. Automated backups are deleted when the DB Instance is deleted, manual snapshots or final deletion snapshot are reatained.
+- RDS supports two types of snapshot copies. Copy an automated DB snapshot to manual DB snapshot in the same region (so the DB snapshot is retained), Copy automated/manual DB snapshot to another region.
 - It is strongly recommended to use the DNS Name to connect to your DB Instance as the underlying IP address can change (e.g., during a failover).
 - You can update/modify a DB Subnet Group but explicitly changing the DB Subnet Group of a deployed DB instance is not currently allowed.
 - You can encrypt DB connections using SSL. Amazon RDS generates an SSL certificate for each DB Instance.
@@ -161,6 +169,8 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - You should use invalidation only in unexpected circumstances; if you know beforehand that your files will need to be removed from cache frequently, it is recommended that you either implement a versioning system for your files and/or set a short expiration period.
 - Streaming Summary: If you have media files HLS format or Microsoft Smooth Streaming format prior to storing in Amazon S3 (or a custom origin), you can use an Amazon CloudFront web distribution to stream in that format without having to run any media servers. In addition you can also run a third party streaming server (e.g. Wowza Media Server available on AWS Marketplace) on Amazon EC2 which can convert a media file to the required HTTP streaming format. This server can then be designated as the origin for an Amazon CloudFront web distribution. Another option, if you want to stream using RTMP, is to store your media files on Amazon S3 and use it as the origin for an Amazon CloudFront RTMP distribution.
 - You can enable access logging to write detailed log information in a W3C extended format into S3, containing detailed information about each request, including: object requested, edge location, client IP, referrer, user agent, cookie header, and result type (cache hit/miss/error).
+- Signed URLs use cases: RTMP distribution (signed cookies aren't supported for RTMP distributions), Restrict access to individual files, Client doesn't support cookies.
+- Signed Cookies use cases: Provide access to multiple restricted files, You don't want to change your current URLs.
 
 ## CloudFormation
 
