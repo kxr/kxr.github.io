@@ -29,10 +29,15 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - Spot instances can be launched with a guarentee of upto 6 hours runtime (Block duration).
 - ELB supports IPv6. Each Elastic Load Balancer has an associated IPv4, IPv6, and dualstack (both IPv4 and IPv6) DNS name, However, IPv6 is not supported in VPC at this time.
 - ELB supports AMIs from AWS Marketplace but not from Amazon DevPay site.
+- You can perform load balancing for the following TCP ports: 25, 80, 443, and 1024-65535.
 - You can't merge placement groups. Instead, you must terminate the instances in one placement group, and then relaunch those instances into the other placement group.
 - When launching an instance you can specify the ENI to attach to the instance for both the primary (eth0) and additional elastic network interfaces.
+- When you change the launch configuration for your Auto Scaling group, any new instances are launched using the new configuration parameters, but existing instances are not affected.
+- There is a significant increase in latency when you first access each block of data on a new EBS volume that was restored from a snapshot SSD/PSSD/Magnetic. You can avoid this by accessing each block in advance (initialization/pre-warming).
 
 ## Simple Storage Service (S3)
+
+- Individual Amazon S3 objects can range in size from a minimum of 0 bytes to a maximum of 5 terabytes.
 
 - Individual Amazon S3 objects can range in size from a minimum of 0 bytes to a maximum of 5 terabytes.
 - For objects greater than 100 MB, it is recommended, and for objects greater than 5 GB, it is cumpulsory to use multipart upload.
@@ -62,13 +67,8 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - http://docs.aws.amazon.com/AmazonS3/latest/dev/access-control-auth-workflow-bucket-operation.html
 - All data in the Glacier will be encrypted on the server side. Glacier handles key management and key protection. Customers wishing to manage their own keys can encrypt data prior to uploading it.
 - You can retrieve a specific range of an archive from Glacier. Range retrievals are similar to regular retrievals in Amazon Glacier. Both require the initiation of a retrieval job that typically completes within 3-5 hours. You can use range retrievals to reduce or eliminate your retrieval fees. Using range retrievals, you provide a byte range that can start at zero (beginning), or at any 1MB interval thereafter (e.g. 1MB, 2MB, 3MB, etc).
-- By default, all Amazon S3 resources are private. Only a resource owner can access the resource. The resource owner refers to the AWS account that creates the resource. For example:
-The AWS account that you use to create buckets and objects owns those resources.
-If you create an AWS Identity and Access Management (IAM) user in your AWS account, your AWS account is the parent owner. If the IAM user uploads an object, the parent account, to which the user belongs, owns the object.
-A bucket owner can grant cross-account permissions to another AWS account (or users in another account) to upload objects. In this
-case, the AWS account that uploads objects owns those objects. The bucket owner does not have permissions on the objects that other accounts own, with the following exceptions:
-The bucket owner pays the bills. The bucket owner can deny access to any objects, or delete any objects in the bucket, regardless of who owns them.
-The bucket owner can archive any objects or restore archived objects regardless of who owns them. Archival refers to the storage class used to store the objects. For more information, see Object Lifecycle Management."
+- AWS account that owns a bucket can grant another AWS account permission to manage access policy. It allows that account to change anything in the policy.
+- 
 
 	
 
@@ -89,9 +89,13 @@ The bucket owner can archive any objects or restore archived objects regardless 
 - You can attach an ENI in one subnet to an instance in another subnet in the same VPC; however, both the elastic network interface and the instance must reside in the same Availability Zone.
 - You can assigne multiple EIP addresses to EC2 instances. EIP addresses should only be used on instances in subnets configured to route their traffic directly to the Internet gateway. EIPs cannot be used on instances in subnets configured to use a NAT.
 - You can create a default route for each subnet. The default route can direct traffic to egress the VPC via the IGW/VPG/NAT.
+- Each route table has an un-deletable rule that routes anything to the VPCs CIDR block to a target of "local", i.e., the VPCs router. The router knows about all the VPCs attached subnets and how to route amongst them, and there’s no way to change that.
 - Peering connections are only available between VPCs in the same region. Peering can be done with VPC in a different AWS account. Peered VPCs must have non-overlapping IP ranges.
 - You cannot use AWS Direct Connect or hardware VPN connections to access VPCs you are peered with.
 - Transitive peering relationships are not supported. i.e. If you peer VPC A to VPC B and VPC B to VPC C, that doesn't mean VPCs A and C are peered.
+- Each network ACL includes a rule whose rule number is an asterisk. This rule ensures that if a packet doesn't match any of the other rules, it's denied. You can't modify or remove this rule.
+- You cannot reference a security group from the peer VPC as a source/destination for ingress/egress rules in your security group. Instead, reference CIDR blocks of the peer VPC.
+- The Amazon DNS server cannot resolve private DNS hostnames if your VPC's IP address range falls outside of the private IP addresses ranges specified by RFC 1918. 
 
 ## Direct Connect
 
@@ -99,6 +103,7 @@ The bucket owner can archive any objects or restore archived objects regardless 
 - AWS Direct Connect do not offer a SLA at this time
 - You cannot connect to internet using Direct Connect.
 - When creating a virtual interface to work with AWS services using public IP space (a.k.a. public virtual interface), you will receive all Amazon IP prefixes for the region that you are connecting to. Direct Connect customers in the US will receive the public IP prefixes for all US Regions.
+- You get great consistent performance using DirectConnect, but unverifiable security (AWS can't guarantee any security past its connection to the colocation facility), and completely verifiable security with VPN but unpredictable performance. Using VPN over Direct Connect gives you the best of both worlds.
 
 ## Relational Database Service (RDS)
 
@@ -112,8 +117,6 @@ The bucket owner can archive any objects or restore archived objects regardless 
 - RDS uses EBS volumes automatically striped across multiple EBS volumes to enhance IOPS. For MySQL and Oracle you may observe some I/O capacity improvement if you scale up your storage.
 - Storage can be increased while maintaining DB Instance availability. Compute resource scale will cause a temporary (few minutes) unavailability.
 - Automated backups performs a full daily snapshot of your data and captures transaction logs. You can initiate a point-in-time restore and specify any second during your retention period, up to the Latest Restorable Time which is typically within the last five minutes.
-- When you perform a restore operation to a point in time or from a DB Snapshot, a new DB Instance is created with a new endpoint, the old DB Instance can be deleted.
-- During the backup window, storage I/O may be briefly suspended while the backup process initializes (typically under a few seconds). There is no I/O suspension for Multi-AZ deployments.
 - Automated backups can be turned off by setting the retention period to 0. Automated backups are deleted when the DB Instance is deleted, manual snapshots or final deletion snapshot are reatained.
 - RDS supports two types of snapshot copies. Copy an automated DB snapshot to manual DB snapshot in the same region (so the DB snapshot is retained), Copy automated/manual DB snapshot to another region.
 - It is strongly recommended to use the DNS Name to connect to your DB Instance as the underlying IP address can change (e.g., during a failover).
@@ -136,6 +139,9 @@ The bucket owner can archive any objects or restore archived objects regardless 
 - Deleting source DB instance do not delete the Read Replica(s). In case of PostgreSQL, all read replicas will be promoted to stand alone automatically.
 - MySQL doesn't provide access to binary logs, similarly PostgreSQL doesn't provide access to WAL files, to setup replication on your own.
 - Enhanced Monitoring supports every instance type except t1.micro and m1.small.
+- You cannot reduce the amount of storage once it has been allocated. The only way to reduce the amount of storage allocated to a DB instance is to dump the data out, create a new DB instance with less storage space, and then load the data into the new DB instance.
+- Magnetic storage is not reserved for a single DB instance, so performance can vary greatly depending on the demands placed on shared resources by other customers.
+- 
 
 ## Identity and Access Management (IAM)
 
@@ -146,6 +152,10 @@ The bucket owner can archive any objects or restore archived objects regardless 
 - You can only act as one IAM role when making requests to AWS services.
 - You cannot add IAM role to IAM group.
 - You can add up to 10 managed policies to a user, role, or group. Inline policies for user, role and group are limited by characters, 2048, 10240 and 5120 characters respectively.
+- You are limited to 250 IAM roles under your AWS account, limit increase can be requested.
+- IAM role for EC2 instance cannot be more than one, and cannot be attached after launch.
+- When using IAM role for EC2 isntance, AWS SDK automatically uses the access keys (temporary security credentials) provided by the STS. A custom application can also retrieve these access keys from the EC2 meta-data.
+- Temporary security credential cannot be revoked prior to its expiration. However if the request was made by an IAM user, you can revoke permissions of that IAM user, which will revoke privileges for all temporary security credentials issued by that IAM user.
 - You are limited to 250 IAM roles under your AWS account, limit increase can be requested.
 - IAM role for EC2 instance cannot be more than one, and cannot be attached after launch.
 - When using IAM role for EC2 isntance, AWS SDK automatically uses the access keys (temporary security credentials) provided by the STS. A custom application can also retrieve these access keys from the EC2 meta-data.
@@ -173,15 +183,12 @@ The bucket owner can archive any objects or restore archived objects regardless 
 ## CloudFront
 
 - Geo Restriction feature lets you specify a list of countries in which your users can or cannot access your content. CloudFront responds with 403 to a request from a restricted country.
-- You can use SSL certificates managed by ACM or your own purchased ones (by uploadig them to IAM certificate store).
-- You can configure CloudFront to add custom headers, or override existing headers, to requests forwarded to your origin.
-- Invalidation requests invalidate the cached objects from the edge locations. Invalidation requests are charged. There is a limit on concurrent invalidation requests.
-- You should use invalidation only in unexpected circumstances; if you know beforehand that your files will need to be removed from cache frequently, it is recommended that you either implement a versioning system for your files and/or set a short expiration period.
 - Streaming Summary: If you have media files HLS format or Microsoft Smooth Streaming format prior to storing in Amazon S3 (or a custom origin), you can use an Amazon CloudFront web distribution to stream in that format without having to run any media servers. In addition you can also run a third party streaming server (e.g. Wowza Media Server available on AWS Marketplace) on Amazon EC2 which can convert a media file to the required HTTP streaming format. This server can then be designated as the origin for an Amazon CloudFront web distribution. Another option, if you want to stream using RTMP, is to store your media files on Amazon S3 and use it as the origin for an Amazon CloudFront RTMP distribution.
 - You can enable access logging to write detailed log information in a W3C extended format into S3, containing detailed information about each request, including: object requested, edge location, client IP, referrer, user agent, cookie header, and result type (cache hit/miss/error).
 - Signed URLs use cases: RTMP distribution (signed cookies aren't supported for RTMP distributions), Restrict access to individual files, Client doesn't support cookies.
 - Signed Cookies use cases: Provide access to multiple restricted files, You don't want to change your current URLs.
 - A cache behavior lets you configure a variety of CloudFront functionality for a given URL path pattern for files on your website.
+- When CloudFront updates bucket permissions to grant the specified origin access identity the permission to read objects in your bucket, it does not remove existing permissions. If users currently have permission to access the objects in your bucket using Amazon S3 URLs, they will still have that permission after CloudFront updates your bucket permissions.
 
 ## CloudFormation
 
@@ -195,7 +202,13 @@ The bucket owner can archive any objects or restore archived objects regardless 
 - Beanstalk supports Java, .NET, PHP, Node.js, Python, Ruby, Go, and Docker web applications.
 - The current version of AWS Elastic Beanstalk uses the Amazon Linux AMI or the Windows Server 2012 R2 AMI.
 - You can: Choose OS, Choose database and storage options, Enable login access to Amazon EC2, run in more than one AZ, Use HTTPS on ELB, Access built-in CloudWatch monitoring, Adjust application server settings, pass environment variables, Run custom appliactions like memcache in EC2, Access log files without logging in to the application servers.
+- One environment cannot support two different environment tiers because each requires its own set of resources; a worker environment tier and a web server environment tier each require an Auto Scaling group, but Elastic Beanstalk supports only one Auto Scaling group per environment.
 - When updating Elastic Beanstalk with Git deployment, only the modified files are transmitted to AWS Elastic Beanstalk and updates typically take a few seconds.
+- Application can be configured to automatically scale tens or even hundreds of times based on thresholds such as CPU utilization or network bandwidth.
+- If an underlying EC2 instance fails for any reason, AWS Elastic Beanstalk will use Auto Scaling to automatically launch a new instance.
+- Beanstalk stores your application files and optionally server log files in S3. S3 bucket will be automatically created for you and the uploaded files will be automatically copied from your local client to Amazon S3.
+- You may configure Elastic Beanstalk to copy your server log files every hour to Amazon S3. You do this by editing the environment configuration settings.
+- Beanstalk can automatically provision an RDS DB Instance. The connectivity information to the DB Instance is exposed to your application by environment variables.
 - Application can be configured to automatically scale tens or even hundreds of times based on thresholds such as CPU utilization or network bandwidth.
 - If an underlying EC2 instance fails for any reason, AWS Elastic Beanstalk will use Auto Scaling to automatically launch a new instance.
 - Beanstalk stores your application files and optionally server log files in S3. S3 bucket will be automatically created for you and the uploaded files will be automatically copied from your local client to Amazon S3.
@@ -235,6 +248,7 @@ The bucket owner can archive any objects or restore archived objects regardless 
 - DynamoDB Streams provides a time-ordered sequence of item-level changes made to data in a table in the last 24 hours. You can access a stream using SDK or Kinesis Client Library (KCL).
 - DynamoDB cross-region replication allows you to maintain identical copies (called replicas) of a DynamoDB table (called master table) in single master mode, in one or more AWS regions. It is setup using the replication management app that you launch from the AWS CloudFormation console. There are no limits on the number of replicas tables from a single master table. The provisioned capacity for read replicas is independent of the masater. Replicas are updated asynchronously.
 - DynamoDB cross-region replication, when launched, uses DynamoDB streams to keep the data in sync. Additionally it also uses an EC2 instance of your choice to host the replication application and an SQS queue that queues control commands.
+- The replication application will not create or propagate changes made on secondary indices on the master table to replica tables.
 - DynamoDB Triggers is a feature which allows you to execute custom actions (Lambda functions) based on item-level updates on a DynamoDB table. To create a trigger, you associate a Lambda function to the stream. When the updates are published, Lambda function reads it and executes the code in the function.
 - DynamoDB supports four scalar data types: Number, String, Binary, and Boolean. Additionally, DynamoDB supports collection data types: Number Set, String Set, Binary Set, heterogeneous List and heterogeneous Map. DynamoDB also supports NULL values. DynamoDB supports key-value and document data structures. For JSON data type, you can use the document SDK to pass JSON data directly to DynamoDB
 - DynamoDB supports GET/PUT operations using a user-defined primary key (specified when creating a table). DynamoDB also provides flexible querying on non-primary key attributes using Global Secondary Indexes and Local Secondary Indexes.
@@ -248,10 +262,13 @@ The bucket owner can archive any objects or restore archived objects regardless 
 - For Query and Scan calls, DynamoDB uses the cumulative size of the processed items to calculate provisioned throughput.
 - When uploading data to a table, you get better performance if you upload data to all the allocated servers (DynamoDB partitions your table data on multiple servers) simultaneously. To fully utilize all of the throughput capacity that has been provisioned for your tables, you need to distribute your workload across your hash attribute values.
 - DynamoDB provides some flexibility in the per-partition throughput provisioning. When you are not fully utilizing a partition's throughput, DynamoDB reserves a portion of your unused capacity for later "bursts" of throughput usage. This reserved throughput can be consumed even faster than the provisioned throughput capacity. You should not design your application dependent on burst capacity being available at all times. DynamoDB can and does use burst capacity for background maintenance and other tasks without prior notice.
+- LSI are created at the same time that you create a table. You cannot add a local secondary index to an existing table, nor can you delete any local secondary indexes that currently exist.
 
 ## ElastiCache
 
 - You can update an existing Cache Subnet Group but changing the Cache Subnet Group of a deployed Cache Cluster is not currently allowed.
+- All clients to an ElastiCache Cluster must be within the Amazon EC2 network, and authorized via security groups.
+- Access to your cache nodes is controlled using the VPC Security Group and the Cache Subnet Group.
 
 ### Memecached
 
@@ -293,6 +310,7 @@ The bucket owner can archive any objects or restore archived objects regardless 
 - Typically, you set up a DLQ to receive messages after a max number of processing atttempts have been reached. DLQs provides the ability to isolate messages that could not be processed for later analysis.
 - The Permissions API provides a simple interface for developers to share access to a queue but it cannot allow for conditional access and more advanced use cases. The SetQueueAttributes operation supports the full access policy language.
 - SQS in each region is totally independent in message stores and queue names. 
+- Delay queues allow you to postpone the delivery of new messages in a queue for a specific number of seconds (0-900). Any message send to that queue will be invisible to consumers for the duration of the delay period. You can also turn an existing queue into a delay queue by using SetQueueAttribute to set the queue's DelaySeconds attribute.
 
 ## Simple Workflow Service (SWF)
 
@@ -300,13 +318,8 @@ The bucket owner can archive any objects or restore archived objects regardless 
 - SWF ensures that a task is assigned only once and is never duplicated.
 - 
 
-## Elastic MapReduce
-
 ## Kinesis
 
-- Kinesis Streams synchronously replicates data across three facilities in an AWS Region, providing high availability and data durability.
-- Typical scenarios: Accelerated/Continuous/Realtime log/data feed intake, Order critical data like appliaction logs or billing records, Real-time metrics and reporting, Real-time data analytics and Complex stream processing (You can create Directed Acyclic Graphs (DAGs) of Amazon Kinesis Applications and data streams. In this scenario, one or more Amazon Kinesis Applications can add data to another Amazon Kinesis stream for further processing, enabling successive stages of stream processing).
-- By default, Records of a stream are accessible for up to 24 hours from the time they are added to the stream. You can raise this limit to up to 7 days by enabling extended data retention.
 - The maximum size of a data blob (the data payload before Base64-encoding) within one record is 1 MB.
 - Each shard provides a capacity of 1MB/sec (1000 TPS max) data input and 2MB/sec (5 TPS max) data output. You can monitor shard-level metrics in Amazon Kinesis Streams and add or remove shards from your stream dynamically as your data throughput changes by resharding the stream.
 - Partition key is used to segregate and route records to different shards of a stream.
@@ -319,6 +332,7 @@ The bucket owner can archive any objects or restore archived objects regardless 
 - An application calls KCL (with configuration such as the stream name and AWS credentials) to instantiate a worker. This call also passes a reference to an IRecordProcessorFactory implementation. KCL uses this factory to create new record processors as needed to process data from the stream. KCL communicates with these record processors using the IRecordProcessor interface.
 - KCL automatically creates DynamoDB table for each Kinesis Application to track and maintain state information such as resharding events and sequence number checkpoints. The DynamoDB table shares the same name with the application so that you need to make sure your application name doesn’t conflict with any existing DynamoDB tables under the same account within the same region.
 
+## Elastic MapReduce
 
 ## Data Pipeline
 
