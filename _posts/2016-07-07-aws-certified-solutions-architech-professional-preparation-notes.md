@@ -29,11 +29,13 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - Spot instances can be launched with a guarentee of upto 6 hours runtime (Block duration).
 - ELB supports IPv6. Each Elastic Load Balancer has an associated IPv4, IPv6, and dualstack (both IPv4 and IPv6) DNS name, However, IPv6 is not supported in VPC at this time.
 - ELB supports AMIs from AWS Marketplace but not from Amazon DevPay site.
+- Cross-zone load balancing reduces the need to maintain equivalent numbers of back-end instances in each AZ, and improves your application's ability to handle the loss of one or more back-end instances (by distributing incoming requests evenly across all back-end instances, regardless of AZ they are in).
 - You can perform load balancing for the following TCP ports: 25, 80, 443, and 1024-65535.
 - You can't merge placement groups. Instead, you must terminate the instances in one placement group, and then relaunch those instances into the other placement group.
 - When launching an instance you can specify the ENI to attach to the instance for both the primary (eth0) and additional elastic network interfaces.
 - When you change the launch configuration for your Auto Scaling group, any new instances are launched using the new configuration parameters, but existing instances are not affected.
 - There is a significant increase in latency when you first access each block of data on a new EBS volume that was restored from a snapshot SSD/PSSD/Magnetic. You can avoid this by accessing each block in advance (initialization/pre-warming).
+- Encryption is supported with all EBS volume types and you can expect the same IOPS performance with a minimal effect on latency. You can access encrypted volumes the same way that you access existing volumes.
 
 ## Simple Storage Service (S3)
 
@@ -44,6 +46,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - Any publicly available data in Amazon S3 can be downloaded via the BitTorrent protocol by adding the ?torrent parameter at the end of the GET request.
 - S3 data storage is calculated in TimedStorage-ByteHrs which are added up at the end of the month.
 - Data at rest can be encrypted by using SSE-S3, SSE-KMS or SSE-C (Server Side Encryption with Customer-Provide Keys) via Amazon provided encryption technology; Alternatively you can use your own encryption libraries to encrypt data before storing.
+- Server-side encryption encrypts only the object data. Any object metadata is not encrypted.
 - S3 stores objects lexicographically (alphabetical order) based on key name. Using a sequential prefix (e.g. timestamp) increases the likelihood that S3 will only target a specific partition, overwhelming the I/O capacity of the partition. Introducing some randomness in your key name/prefixes, will cause S3 to distribute across multiple partitions.
 - Access can be restricted based on an aspect of the request, such as HTTP referrer and IP address.
 - Data that is deleted from Standard - IA within 30 days will be charged for a full 30 days.
@@ -68,7 +71,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - All data in the Glacier will be encrypted on the server side. Glacier handles key management and key protection. Customers wishing to manage their own keys can encrypt data prior to uploading it.
 - You can retrieve a specific range of an archive from Glacier. Range retrievals are similar to regular retrievals in Amazon Glacier. Both require the initiation of a retrieval job that typically completes within 3-5 hours. You can use range retrievals to reduce or eliminate your retrieval fees. Using range retrievals, you provide a byte range that can start at zero (beginning), or at any 1MB interval thereafter (e.g. 1MB, 2MB, 3MB, etc).
 - AWS account that owns a bucket can grant another AWS account permission to manage access policy. It allows that account to change anything in the policy.
-- 
+- Buckets in all Regions provide read-after-write consistency for PUTS of new objects and eventual consistency for overwrite PUTS and DELETES.
 
 	
 
@@ -188,13 +191,30 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - Signed URLs use cases: RTMP distribution (signed cookies aren't supported for RTMP distributions), Restrict access to individual files, Client doesn't support cookies.
 - Signed Cookies use cases: Provide access to multiple restricted files, You don't want to change your current URLs.
 - A cache behavior lets you configure a variety of CloudFront functionality for a given URL path pattern for files on your website.
-- When CloudFront updates bucket permissions to grant the specified origin access identity the permission to read objects in your bucket, it does not remove existing permissions. If users currently have permission to access the objects in your bucket using Amazon S3 URLs, they will still have that permission after CloudFront updates your bucket permissions.
+- When CloudFront updates bucket permissions to grant the specified origin access identity the permission to read objects in your bucket, it does not remove existing permissions. If users currently have permission to access the objects in your bucket using Amazon S3 URLs, they will still have that permi0ssion after CloudFront updates your bucket permissions.
+- CloudFormation allows you to name some resources (such as Amazon S3 buckets), not all. You can assign logical names to AWS resources in a template. When a stack is created, AWS CloudFormation binds the logical name to the name of the corresponding actual AWS resource. Actual resource names are a combination of the stack and logical resource name. This allows multiple stacks to be created from a template without fear of name collisions between AWS resources.
+- If you configure CloudFront to use HTTPS when communicating with your origin...CloudFront verifies that your certificate was issued by an established third-party certificate authority...You cannot use a self-signed certificate.
+- Reserved Capacity gives you the option to commit to a minimum monthly usage level for 12 months or longer. Reserved Capacity agreements begin at a minimum of 10 TB of data transfer per month from a single region.
 
 ## CloudFormation
 
 - CloudFormation provides a WaitCondition resource that acts as a barrier, blocking the creation of other resources until a completion signal is received from an external source such as your application, or management system.
 - CloudFormation provides three deletion policies: Delete (any resource), Retain (any resource) and Snapshot (EC2/RDS/RedShift).
 - During a stack update, you cannot add or update a DeletionPolicy by itself. You can add or update a DeletionPolicy only when you include changes that add, modify, or delete resources. If you need to add or modify a DeletionPolicy and don't want to make any changes to a resource, you can use a dummy resource, such as AWS::CloudFormation::WaitConditionHandle.
+- You can pause a CloudFormation template using wait conditions. For EC2 and Auto Scaling resources, it is recommended that you use a CreationPolicy attribute instead of wait conditions. Add a CreationPolicy attribute to those resources and use the cfn-signal helper script to signal when an instance has been successfully created.
+- When updating a stack, before making changes to your resources, you can generate a change set, which is summary of your proposed changes. Change sets allow you to see how your changes might impact your running resources, especially for critical resources, before implementing them. Change set doesn't evaluate resource limits or permissions.
+- If stack creation fails, CloudFormation rolls back your changes by deleting the resources that it created.
+- If uploading template from local computer, Cloudfront will automatically create upload and store the template in S3.
+- CloudFormation templates that are stored in an S3 bucket must be accessible to the user who is creating the stack, and must exist in the same region as the stack being created.
+- The AWS::Region pseudo parameter enables you to get the region where the stack is created.
+- The intrinsic function Fn::FindInMap returns the value corresponding to keys in a two-level map that is declared in the Mappings section.
+- The intrinsic function Fn::GetAZs lists Availability Zones for a region enabling template authors to write templates that adapt to the calling user's access.
+- DependsOn attribute enables you to specify that one resource must be created after another e.g. EC2 instance with a public IP address is dependent on the VPC-gateway attachment, An EC2 instance might be depedent on a service role etc.
+- The Metadata attribute enables you to associate structured data with a resource enabling you to add data in JSON format to the resource declaration.
+- AWS::CloudFormation::Stack enables you to nest another stack as a resource within your template.
+- 
+
+
 
 ## Elastic BeanStalk
 
@@ -325,7 +345,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - Partition key is used to segregate and route records to different shards of a stream.
 - You can add data to Kinesis stream via PutRecord and PutRecords operations, Kinesis Producer Library (KPL), or Kinesis Agent (java based application available for Amazon Linux/RHEL).
 - Kinesis Application is a data consumer that reads and processes data from an Amazon Kinesis stream.
-- Kinesis Client Library (KCL) for Java | Python | Ruby | Node.js | .NET is a pre-built library that helps you easily build Amazon Kinesis Applications for reading and processing data from an Amazon Kinesis stream
+- Kinesis Client Library (KCL) for Java/Python/Ruby/Node.js/.NET is a pre-built library that helps you easily build Amazon Kinesis Applications for reading and processing data from an Amazon Kinesis stream.
 - Kinesis Connector Library is a pre-built library (built on top of KCL) that integrates Kinesis with other AWS services and third-party tools e.g. DynamoDB, Redshift, S3, and Elasticsearch.
 - Kinesis Storm Spout is a pre-built library that helps you easily integrate Amazon Kinesis Streams with Apache Storm.
 - One record processor maps to one shard and processes records from that shard.
