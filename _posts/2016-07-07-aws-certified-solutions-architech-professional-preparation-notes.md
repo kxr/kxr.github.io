@@ -212,7 +212,9 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - DependsOn attribute enables you to specify that one resource must be created after another e.g. EC2 instance with a public IP address is dependent on the VPC-gateway attachment, An EC2 instance might be depedent on a service role etc.
 - The Metadata attribute enables you to associate structured data with a resource enabling you to add data in JSON format to the resource declaration.
 - AWS::CloudFormation::Stack enables you to nest another stack as a resource within your template.
-- 
+- When you launch stacks, you can install and configure software applications on Amazon EC2 instances by using the cfn-init helper script and the AWS::CloudFormation::Init resource. By using AWS::CloudFormation::Init, you can describe the configurations that you want rather than scripting procedural steps. You can also update configurations without recreating instances.
+- By default, the cfn-hup daemon runs every 15 minutes, so it may take up to 15 minutes for the application to change once the stack has been updated.
+- Each instance will run the cfn-hup hooks on its own schedule; there is no coordination between the instances in the stack. You should consider the following: If the cfn-hup changes run on all Amazon EC2 instances in the Auto Scaling group at the same time, your service might be unavailable during the update. If the cfn-hup changes run at different times, old and new versions of the software may be running at the same. To avoid these issues, consider forcing a rolling update on your instances in the Auto Scaling group
 
 
 
@@ -354,9 +356,36 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 
 ## Elastic MapReduce
 
+- EMR is ideal for processing and transforming unstructured or semi-structured data to bring in to Amazon Redshift and is also a much better option for data sets that are relatively transitory, not stored for long-term use.
+
 ## Data Pipeline
 
 ## RedShift
+
+- Redshift data warehouse is a collection of computing resources called nodes, which are organized into a group called a cluster. Each cluster runs an Amazon Redshift engine and contains one or more databases.
+- You can use most SQL client tools with Amazon Redshift JDBC or ODBC drivers to connect to an Redshift cluster.
+- Single Node clusters consist of a single node which performs both leader and compute functions.
+- Multi Node clusters consist of compute nodes that you select and a leader node that is added to your cluster, free of charge. The leader node is the access point for ODBC/JDBC and generates the query plans executed on the compute nodes.
+- Redshift data cluster can contain from 1-128 compute nodes
+- Redshift supports KMS and HSM for data encryption.
+- You cannot access your nodes directly. 
+- It is recommended to use the COPY command to load large datasets into Amazon Redshift from Amazon S3 or DynamoDB. The data can be located in an S3 bucket, an EMR cluster, or a remote host that is accessed using SSH.
+- Data Pipeline provides a high performance, reliable, fault tolerant solution to load data from a variety of AWS data sources into Redshift.
+- Redshift uses replication and continuous backups to enhance availability and improve data durability and can automatically recover from component and node failures.
+- Single node clusters do not support data replication. In the event of a drive failure you will need to restore the cluster from snapshot on S3.
+- Redshift always attempts to maintain at least three copies of your data (the original and replica on the compute nodes and a backup in Amazon S3).
+- Redshift can also asynchronously replicate your snapshots to S3 in another region for disaster recovery. The replication to a remote region can be done manually or set to be done automatically with retention on remote copied snapshots.
+- Redshift snapshot include the following details: No. of nodes, Type of nodes, Cluster configuration, data.	
+
+- Redshift will remain available in the event of a drive failure however you may see a slight decline in performance for certain queries.
+- In case on a node failure, the cluster will be unavailable for queries and updates until a replacement node is provisioned and added to the DB.
+- In case the cluster's AZ goes down or becomes available, you will not be able to use your cluster until power and network access to the AZ are restored.
+- You can create a cluster using either Dense Storage (DS) nodes or Dense Compute (DC) nodes.
+- Redshift's MPP architecture means you can increase your performance by increasing the number of nodes in your data warehouse cluster.
+- There is no Data Transfer charge for data transferred to or from Amazon Redshift outside of Amazon VPC. Data Transfer to or from Redshift in Amazon VPC accrues standard AWS data transfer charges.
+- You can increase the number of nodes within your cluster. The cluster remains available for read operations while a new data warehouse cluster gets created during scaling operations.
+- When shutting down a cluster allows a final creation of snapshot and the cluster is deleted. Deleting a cluster will not allow the creation of a final snapshot. Both options will delete all any automated snapshots associated.
+- 
 
 ## CloudTrail
 
