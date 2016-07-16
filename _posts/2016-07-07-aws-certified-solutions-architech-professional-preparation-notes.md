@@ -260,6 +260,7 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 
 ## DynamoDB
 
+- Table names must be unique within each region. That is, you can have two tables with same name if you create the tables in different regions.
 - When reading data from Amazon DynamoDB, users can specify whether they want the read to be eventually consistent (default) or strongly consistent.
 - DynamoDB supports fast in-place atomic updates.
 - DynamoDB runs exclusively on Solid State Drives.
@@ -354,11 +355,6 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - An application calls KCL (with configuration such as the stream name and AWS credentials) to instantiate a worker. This call also passes a reference to an IRecordProcessorFactory implementation. KCL uses this factory to create new record processors as needed to process data from the stream. KCL communicates with these record processors using the IRecordProcessor interface.
 - KCL automatically creates DynamoDB table for each Kinesis Application to track and maintain state information such as resharding events and sequence number checkpoints. The DynamoDB table shares the same name with the application so that you need to make sure your application name doesn’t conflict with any existing DynamoDB tables under the same account within the same region.
 
-## Elastic MapReduce
-
-- EMR is ideal for processing and transforming unstructured or semi-structured data to bring in to Amazon Redshift and is also a much better option for data sets that are relatively transitory, not stored for long-term use.
-
-## Data Pipeline
 
 ## RedShift
 
@@ -387,16 +383,20 @@ title: AWS Certified Solutions Architect Professional Prepartion Notes
 - When shutting down a cluster allows a final creation of snapshot and the cluster is deleted. Deleting a cluster will not allow the creation of a final snapshot. Both options will delete all any automated snapshots associated.
 - 
 
-## CloudTrail
+## TODO
 
-## CloudWatch 
+- CloudTrail
 
+- CloudWatch 
 
-## Simple Email Service (SES)
+- Elastic MapReduce
 
+- Data Pipeline
 
-## Simple Notifications Service (SNS)
+- Simple Email Service (SES)
 
-## Lambda 
+- Simple Notifications Service (SNS)
 
-## Amazon Cognito
+- Lambda 
+
+- Amazon Cognito
