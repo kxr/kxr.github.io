@@ -21,9 +21,8 @@ baseurl:          /
 
 author:
   name:           'Khizer Naeem'
-  url:            https://twitter.com/mdo
 
-paginate:         10
+paginate:         7
 
 # Custom vars
 version:          2.1.0
