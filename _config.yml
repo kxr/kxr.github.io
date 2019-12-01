@@ -1,23 +1,21 @@
 plugins:
-        - jekyll-paginate
-        - jekyll-gist
+    - jekyll-paginate
+    - jekyll-gist
 
-markdown: kramdown
 highlighter: rouge
+markdown: kramdown
 kramdown:
-        input: GFM
-        hard_wrap: false
-        syntax_highlighter: rouge
-        coderay_wrap: nil
+    syntax_highlighter: rouge
 
-# Permalinks
-permalink:        pretty
-# relative_permalinks: true
+permalink: pretty
 
-# Setup
-title:            Khizer Naeem
-tagline:          'Linux, Windows, Cloud and Devops'
-description:      'A Linux Systems Engineer, Cloud Architect, and DevOps enthusiast who loves automation, monitoring and stress testing perferably in the realms of Open Source.'
+title: Khizer Naeem
+tagline: Linux Cloud and Devops
+description: >
+    A Linux Systems Engineer, Cloud Architect, and DevOps enthusiast who loves automation,
+    monitoring and stress testing perferably in the realms of Open Source. <br/>
+    Currently working as Technical Account Manager (TAM) @ Red Hat.
+
 url:              http://kxr.me
 baseurl:          /
 

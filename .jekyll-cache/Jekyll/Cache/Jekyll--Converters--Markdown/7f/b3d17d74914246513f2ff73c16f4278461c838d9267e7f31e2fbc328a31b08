@@ -1,0 +1,751 @@
+I"��<p>I am writing this blog post to document the procedure of installing OpenShift 4 UPI (User Provisioned Infrastructure) on KVM/Libvirt using the Baremetal procedure as reference. This can be a useful reference if you are looking to:</p>
+
+<ul>
+  <li>Setup OpenShift 4 on your laptop, workstation or a server.</li>
+  <li>Learn/Teach/Demo the OpenShift 4 UPI Installation procedure.</li>
+</ul>
+
+<p>All you need is an internet connected host that has enough CPU/Memory and virtualization support for KVM.</p>
+
+<p>If you follow along, by the end of this post, you should have a working OpenShift 4 cluster with 3 master nodes, 2 worker nodes and a VM acting as the external load balancer.</p>
+
+<h2 id="prerequisites-and-assumptions">Prerequisites and Assumptions</h2>
+
+<ul>
+  <li>
+    <p>Make sure that the host has a stable and fast connection to the internet. This is important as during the boostrap process, all the control plane nodes download roughly 4-5 GB of images from the container registry (quay.io).</p>
+  </li>
+  <li>
+    <p>It is assumed that Virtualization support enabled in BIOS of the Host/Hypervisor and libvirt/KVM is already setup with the standard configuration. You are free however, to pick any one of libvirt’s network for the VMs of this OpenShift cluster. Make sure that <code class="highlighter-rouge">libvirt-daemon-driver-network</code> is installed)</p>
+  </li>
+  <li>
+    <p>It is also assumed that which ever libvirt’s network you pick, has dhcp enabled on it. By default the “default” network has dhcp enabled. If for some reason, you want to create a segregated network for this OpenShift install, you can easily do it by:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Pick a random subnet octet (192.168.XXX.0) for this network</span>
+<span class="nv">NET_OCT</span><span class="o">=</span><span class="s2">"133"</span>
+/usr/bin/cp /usr/share/libvirt/networks/default.xml /tmp/new-net.xml
+<span class="nb">sed</span> <span class="nt">-i</span> <span class="s2">"s/default/ocp-</span><span class="k">${</span><span class="nv">NET_OCT</span><span class="k">}</span><span class="s2">/"</span> /tmp/new-net.xml
+<span class="nb">sed</span> <span class="nt">-i</span> <span class="s2">"s/virbr0/ocp-</span><span class="nv">$NET_OCT</span><span class="s2">/"</span> /tmp/new-net.xml
+<span class="nb">sed</span> <span class="nt">-i</span> <span class="s2">"s/122/</span><span class="k">${</span><span class="nv">NET_OCT</span><span class="k">}</span><span class="s2">/g"</span> /tmp/new-net.xml
+virsh net-define /tmp/new-net.xml
+virsh net-autostart ocp-<span class="k">${</span><span class="nv">NET_OCT</span><span class="k">}</span>
+virsh net-start ocp-<span class="k">${</span><span class="nv">NET_OCT</span><span class="k">}</span>
+systemctl restart libvirtd
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>We need a DNS server and we will be using dnsmasq. You have two options <font color="red">(pick either one)</font>:</p>
+
+    <ol>
+      <li>
+        <p><strong>Use NetworkManager’s embedded dnsmasq</strong></p>
+
+        <p>This is preferable if you are running this on your laptop with dynamic interfaces getting IP/DNS from DHCP. dnsmasq in NetworkManager is not enabled by defualt. If you don’t have this enabled and want to use this mode, you can simply enable it by:</p>
+
+        <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">echo</span> <span class="nt">-e</span> <span class="s2">"[main]</span><span class="se">\n</span><span class="s2">dns=dnsmasq"</span> <span class="o">&gt;</span> /etc/NetworkManager/conf.d/nm-dns.conf
+systemctl restart NetworkManager
+</code></pre></div>        </div>
+        <p>To read more about this feature I recommend reading this <a href="https://fedoramagazine.org/using-the-networkmanagers-dnsmasq-plugin/">Fedora Magazine post by Clark</a>.</p>
+      </li>
+      <li>
+        <p><strong>Setup a separate dnsmasq server on the host</strong></p>
+
+        <p>This is preferable if the network on the host is not being managed by NetworkManager. To setup dnsmasq run the following commands (adjust according to your environment):</p>
+
+        <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>yum <span class="nt">-y</span> <span class="nb">install </span>dnsmasq
+<span class="k">for </span>x <span class="k">in</span> <span class="si">$(</span>virsh net-list <span class="nt">--name</span><span class="si">)</span><span class="p">;</span> <span class="k">do </span>virsh net-info <span class="nv">$x</span> | <span class="nb">awk</span> <span class="s1">'/Bridge:/{print "except-interface="$2}'</span><span class="p">;</span> <span class="k">done</span> <span class="o">&gt;</span> /etc/dnsmasq.d/except-interfaces.conf
+<span class="nb">sed</span> <span class="nt">-i</span> <span class="s1">'/^nameserver/i nameserver 127.0.0.1'</span> /etc/resolv.conf
+systemctl restart dnsmasq
+systemctl <span class="nb">enable </span>dnsmasq
+</code></pre></div>        </div>
+      </li>
+    </ol>
+  </li>
+</ul>
+
+<h2 id="installation-procedure">Installation Procedure</h2>
+
+<p>I am following the <a href="https://docs.openshift.com/container-platform/4.2/installing/installing_bare_metal/installing-bare-metal.html">OpenShift 4 UPI Installation documentation for bare-metal</a> with some minor tweaks to get it working on KVM, so I recommend going through it once, if you haven’t already.</p>
+
+<p><strong>Note:</strong> <em>I have intentionally tried to make this copy-paste friendly, to make it easily reproducible. This is my usual style of documenting setup procedures. It is expected that you start in single bash session and run these stream of commands one by one. Each block section is copy-paste-able at a time. If you find any breaking points or have any suggestions, please drop me a line.</em></p>
+
+<h3 id="1--download-files-and-setup-environment">1- Download Files and Setup Environment</h3>
+
+<ul>
+  <li>
+    <p>Start by switching to the root user if you are not already root:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo</span> <span class="nt">-i</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Make sure you have screen installed.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>yum <span class="nt">-y</span> <span class="nb">install </span>screen
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Create and switch to a new directory to keep things clean:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir </span>ocp4 <span class="o">&amp;&amp;</span> <span class="nb">cd </span>ocp4
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>All the VMs will be created on the libvirt’s network that you pick. By default libvirt has only one “default” network. You can find out libvirt’s networks by running <code class="highlighter-rouge">virsh net-list</code></p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">VIR_NET</span><span class="o">=</span><span class="s2">"default"</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Based on the libvirt’s network selected, we need to find out the Network and IP address of libvirt’s bridge interface.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">HOST_NET</span><span class="o">=</span><span class="si">$(</span>ip <span class="nt">-4</span> a s <span class="si">$(</span>virsh net-info <span class="nv">$VIR_NET</span> | <span class="nb">awk</span> <span class="s1">'/Bridge:/{print $2}'</span><span class="si">)</span> | <span class="nb">awk</span> <span class="s1">'/inet /{print $2}'</span><span class="si">)</span>
+<span class="nv">HOST_IP</span><span class="o">=</span><span class="si">$(</span><span class="nb">echo</span> <span class="nv">$HOST_NET</span> | <span class="nb">cut</span> <span class="nt">-d</span> <span class="s1">'/'</span> <span class="nt">-f1</span><span class="si">)</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Set the dnsmasq configuration directory.</p>
+
+    <p>If you are using NetworkManager’s embedded dnsmasq, set it to “/etc/NetworkManager/dnsmasq.d”.
+If you are using a separate dnsmasq installed on the host set it to “/etc/dnsmasq.d”.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">DNS_DIR</span><span class="o">=</span><span class="s2">"/etc/NetworkManager/dnsmasq.d"</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p><strong><font color="orange">[DNS CHECK POINT]</font></strong></p>
+
+    <p>At this point its worth double checking that your DNS is working as expected or the installation will fail later. Most of the installation I have seen failing is because of the DNS.</p>
+
+    <ol>
+      <li>
+        <p>Make sure that the hosts/hypervisor’s dns is pointing to the local dnsmasq. The first entry in /etc/resolv.conf should be “nameserver 127.0.0.1”.</p>
+      </li>
+      <li>
+        <p>Make sure that any entry in /etc/hosts is forward and reverse resolvable by libvirt/kvm. You can test this by adding a test record in /etc/hosts:</p>
+
+        <p><code class="highlighter-rouge">echo "1.2.3.4 test.local" &gt;&gt; /etc/hosts</code></p>
+
+        <p>and then restart libvirtd so it picks up the hosts file:</p>
+
+        <p><code class="highlighter-rouge">systemctl restart libvirtd</code></p>
+
+        <p>and finally check if the forward and reverse lookup works:</p>
+
+        <p><code class="highlighter-rouge">dig test.local @${HOST_IP}</code></p>
+
+        <p><code class="highlighter-rouge">dig -x 1.2.3.4 @${HOST_IP}</code></p>
+
+        <p>verify that you get answers in both the above dig queries.</p>
+      </li>
+      <li>
+        <p>Make sure that any entry in the dnsmasq.d is also picked up by libvirt/kvm. You can test this by adding a test srv record:</p>
+
+        <p><code class="highlighter-rouge">echo "srv-host=test.local,yayyy.local,2380,0,10" &gt; ${DNS_DIR}/temp-test.conf</code></p>
+
+        <p>and then reload dnsmasq (if you are using separate dnsmasq service then restart dnsmasq, if its NetworkManager’s dnsmasq then reload NetworkManager):</p>
+
+        <p>`# If using separate dnsmasq service</p>
+
+        <p>`systemctl restart dnsmasq</p>
+
+        <p>`# If using NetworkManager’s dnsmasq</p>
+
+        <p><code class="highlighter-rouge">systemctl reload NetworkManager</code></p>
+
+        <p>and finally test that both libvirt and your host can resolve the srv record:</p>
+
+        <p><code class="highlighter-rouge">dig srv test.local</code></p>
+
+        <p><code class="highlighter-rouge">dig srv test.local @${HOST_IP}</code></p>
+
+        <p>verify that you get the srv answer (yayy.local) in both the above dig queries.</p>
+      </li>
+      <li>
+        <p>Clean up: remove the test entry in /etc/hosts and delete the ${DNS_DIR}/temp-test.conf file.</p>
+      </li>
+    </ol>
+  </li>
+  <li>
+    <p>Pick a base domain for your cluster:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">BASE_DOM</span><span class="o">=</span><span class="s2">"local"</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Pick a cluster name:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">CLUSTER_NAME</span><span class="o">=</span><span class="s2">"ocp41"</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Pick your SSH public key (file):</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">SSH_KEY</span><span class="o">=</span><span class="s2">"/root/.ssh/id_rsa.pub"</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Download your pull secret from <a href="https://cloud.redhat.com/openshift/install/metal/user-provisioned">Red Hat OpenShift Cluster Manager</a> and load into a variable. You can also copy paste the pull secret. The variable PULL_SEC should have your pull secret without any newlines.</p>
+
+    <p><strong>NOTE:</strong> If you are copy-pasting the value of pull secret, its crucial to use single quotes (not double quotes).</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># If loading from downloaded file</span>
+<span class="nv">PULL_SEC</span><span class="o">=</span><span class="si">$(</span><span class="nb">cat</span> &lt;/download/path&gt;/pull-secret<span class="si">)</span>
+<span class="c"># If copy-pasting, use single quotes</span>
+<span class="nv">PULL_SEC</span><span class="o">=</span><span class="s1">'&lt;paste-pull-secret&gt;'</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Download the RHCOS Install kernel and initramfs and generate the treeinfo. <em>(I am doing this instead of using the RHCOS install ISO because it allows us to pass kernel arguments easily via <code class="highlighter-rouge">virt-install --extra-args</code> instead of typing it manually in the VM’s console)</em></p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir </span>rhcos-install
+wget https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.2/4.2.0/rhcos-4.2.0-x86_64-installer-kernel <span class="nt">-O</span> rhcos-install/vmlinuz
+wget https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.2/4.2.0/rhcos-4.2.0-x86_64-installer-initramfs.img <span class="nt">-O</span> rhcos-install/initramfs.img
+    
+<span class="nb">cat</span> <span class="o">&lt;&lt;</span><span class="no">EOF</span><span class="sh"> &gt; rhcos-install/.treeinfo
+[general]
+arch = x86_64
+family = Red Hat CoreOS
+platforms = x86_64
+version = 4.2.0
+[images-x86_64]
+initrd = initramfs.img
+kernel = vmlinuz
+</span><span class="no">EOF
+</span></code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Download the RHCOS bios image:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>wget https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.2/4.2.0/rhcos-4.2.0-x86_64-metal-bios.raw.gz
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Download the RHEL guest image for KVM. We will use this to setup an external load balancer using haproxy. Visit <a href="https://access.redhat.com/downloads/content/69/ver=/rhel---7/7.7/x86_64/product-software">RHEL download page</a> (login required) and copy the download link of Red Hat Enterprise Linux KVM Guest Image (right-click on “Download Now” and copy link location). Then use wget to download the qcow2 image (its important to put the link in quotes):</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>wget <span class="s2">"&lt;rhel_kvm_image_url&gt;"</span> <span class="nt">-O</span> /var/lib/libvirt/images/<span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="nt">-lb</span>.qcow2
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Set the Red Hat Customer Portal credentials. We will need this when we register the RHEL guest to install haproxy.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">RHNUSER</span><span class="o">=</span><span class="s1">'&lt;your-rhn-user-name&gt;'</span>
+<span class="nv">RHNPASS</span><span class="o">=</span><span class="s1">'&lt;your-rhn-password&gt;'</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Download and extract the OpenShift client and install binaries:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.2.0/openshift-install-linux-4.2.0.tar.gz
+wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.2.0/openshift-client-linux-4.2.0.tar.gz
+    
+<span class="nb">tar </span>xf openshift-client-linux-4.2.0.tar.gz
+<span class="nb">tar </span>xf openshift-install-linux-4.2.0.tar.gz
+<span class="nb">rm</span> <span class="nt">-f</span> README.md
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Create the installation directory for the OpenShift installer:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir </span>install_dir
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Generate the install-config.yaml:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">cat</span> <span class="o">&lt;&lt;</span><span class="no">EOF</span><span class="sh"> &gt; install_dir/install-config.yaml
+apiVersion: v1
+baseDomain: </span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">
+compute:
+- hyperthreading: Disabled
+  name: worker
+  replicas: 0
+controlPlane:
+  hyperthreading: Disabled
+  name: master
+  replicas: 3
+metadata:
+  name: </span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">
+networking:
+  clusterNetworks:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  networkType: OpenShiftSDN
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  none: {}
+pullSecret: '</span><span class="k">${</span><span class="nv">PULL_SEC</span><span class="k">}</span><span class="sh">'
+sshKey: '</span><span class="si">$(</span><span class="nb">cat</span> <span class="nv">$SSH_KEY</span><span class="si">)</span><span class="sh">'
+</span><span class="no">EOF
+</span></code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Generate the ignition files:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./openshift-install create ignition-configs <span class="nt">--dir</span><span class="o">=</span>./install_dir
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Start python’s webserver, serving the current directory in screen:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Pick a port that you want to listen on</span>
+<span class="nv">WEB_PORT</span><span class="o">=</span><span class="s2">"1234"</span>
+screen <span class="nt">-S</span> <span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span> <span class="nt">-dm</span> bash <span class="nt">-c</span> <span class="s2">"python3 -m http.server </span><span class="k">${</span><span class="nv">WEB_PORT</span><span class="k">}</span><span class="s2">"</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Make sure that the VMs can access the host on the web port. Ignore this if you don’t have iptables/firewalld turned on.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># If using firewalld</span>
+firewall-cmd <span class="nt">--add-source</span><span class="o">=</span><span class="k">${</span><span class="nv">HOST_NET</span><span class="k">}</span>
+firewall-cmd <span class="nt">--add-port</span><span class="o">=</span><span class="k">${</span><span class="nv">WEB_PORT</span><span class="k">}</span>/tcp
+    
+<span class="c"># If using iptables</span>
+iptables <span class="nt">-I</span> INPUT <span class="nt">-p</span> tcp <span class="nt">-m</span> tcp <span class="nt">--dport</span> <span class="k">${</span><span class="nv">WEB_PORT</span><span class="k">}</span> <span class="nt">-s</span> <span class="k">${</span><span class="nv">HOST_NET</span><span class="k">}</span> <span class="nt">-j</span> ACCEPT
+</code></pre></div>    </div>
+
+    <p>Note: We are intentionally not opening the port permanently. We only need it in the next section when we spawn up coreos vms.</p>
+  </li>
+  <li>
+    <p><strong><font color="orange">[CHECK POINT]</font></strong></p>
+
+    <p>At this point, make sure that our current directory (ocp4) is being served by python. Also make sure that you can access the ignition (ing) and image (img) files. Simply visit http://localhost:1234 on the host using a browser or curl. Also double check the URLs we are going to pass to the RHCOS installer kernel in the next three commands. Make sure that those URLs are reachable from inside the VMs.</p>
+  </li>
+</ul>
+
+<h3 id="2--create-the-red-hat-coreos-and-load-balancer-vms">2- Create the Red Hat CoreOS and Load Balancer VMs</h3>
+
+<ul>
+  <li>
+    <p>Spawn the bootstrap node:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>virt-install <span class="nt">--name</span> <span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="nt">-bootstrap</span> <span class="se">\</span>
+  <span class="nt">--disk</span> <span class="nv">size</span><span class="o">=</span>50 <span class="nt">--ram</span> 16000 <span class="nt">--cpu</span> host <span class="nt">--vcpus</span> 4 <span class="se">\</span>
+  <span class="nt">--os-type</span> linux <span class="nt">--os-variant</span> rhel7 <span class="se">\</span>
+  <span class="nt">--network</span> <span class="nv">network</span><span class="o">=</span><span class="k">${</span><span class="nv">VIR_NET</span><span class="k">}</span> <span class="nt">--noreboot</span> <span class="nt">--noautoconsole</span> <span class="se">\</span>
+  <span class="nt">--location</span> rhcos-install/ <span class="se">\</span>
+  <span class="nt">--extra-args</span> <span class="s2">"nomodeset rd.neednet=1 coreos.inst=yes coreos.inst.install_dev=vda coreos.inst.image_url=http://</span><span class="k">${</span><span class="nv">HOST_IP</span><span class="k">}</span><span class="s2">:</span><span class="k">${</span><span class="nv">WEB_PORT</span><span class="k">}</span><span class="s2">/rhcos-4.2.0-x86_64-metal-bios.raw.gz coreos.inst.ignition_url=http://</span><span class="k">${</span><span class="nv">HOST_IP</span><span class="k">}</span><span class="s2">:</span><span class="k">${</span><span class="nv">WEB_PORT</span><span class="k">}</span><span class="s2">/install_dir/bootstrap.ign"</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Spawn three master nodes:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for </span>i <span class="k">in</span> <span class="o">{</span>1..3<span class="o">}</span>
+<span class="k">do
+</span>virt-install <span class="nt">--name</span> <span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="nt">-master-</span><span class="k">${</span><span class="nv">i</span><span class="k">}</span> <span class="se">\</span>
+<span class="nt">--disk</span> <span class="nv">size</span><span class="o">=</span>50 <span class="nt">--ram</span> 16000 <span class="nt">--cpu</span> host <span class="nt">--vcpus</span> 4 <span class="se">\</span>
+<span class="nt">--os-type</span> linux <span class="nt">--os-variant</span> rhel7 <span class="se">\</span>
+<span class="nt">--network</span> <span class="nv">network</span><span class="o">=</span><span class="k">${</span><span class="nv">VIR_NET</span><span class="k">}</span> <span class="nt">--noreboot</span> <span class="nt">--noautoconsole</span> <span class="se">\</span>
+<span class="nt">--location</span> rhcos-install/ <span class="se">\</span>
+<span class="nt">--extra-args</span> <span class="s2">"nomodeset rd.neednet=1 coreos.inst=yes coreos.inst.install_dev=vda coreos.inst.image_url=http://</span><span class="k">${</span><span class="nv">HOST_IP</span><span class="k">}</span><span class="s2">:</span><span class="k">${</span><span class="nv">WEB_PORT</span><span class="k">}</span><span class="s2">/rhcos-4.2.0-x86_64-metal-bios.raw.gz coreos.inst.ignition_url=http://</span><span class="k">${</span><span class="nv">HOST_IP</span><span class="k">}</span><span class="s2">:</span><span class="k">${</span><span class="nv">WEB_PORT</span><span class="k">}</span><span class="s2">/install_dir/master.ign"</span>
+<span class="k">done</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Spawn two worker nodes:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for </span>i <span class="k">in</span> <span class="o">{</span>1..2<span class="o">}</span>
+<span class="k">do
+  </span>virt-install <span class="nt">--name</span> <span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="nt">-worker-</span><span class="k">${</span><span class="nv">i</span><span class="k">}</span> <span class="se">\</span>
+  <span class="nt">--disk</span> <span class="nv">size</span><span class="o">=</span>50 <span class="nt">--ram</span> 8192 <span class="nt">--cpu</span> host <span class="nt">--vcpus</span> 4 <span class="se">\</span>
+  <span class="nt">--os-type</span> linux <span class="nt">--os-variant</span> rhel7 <span class="se">\</span>
+  <span class="nt">--network</span> <span class="nv">network</span><span class="o">=</span><span class="k">${</span><span class="nv">VIR_NET</span><span class="k">}</span> <span class="nt">--noreboot</span> <span class="nt">--noautoconsole</span> <span class="se">\</span>
+  <span class="nt">--location</span> rhcos-install/ <span class="se">\</span>
+  <span class="nt">--extra-args</span> <span class="s2">"nomodeset rd.neednet=1 coreos.inst=yes coreos.inst.install_dev=vda coreos.inst.image_url=http://</span><span class="k">${</span><span class="nv">HOST_IP</span><span class="k">}</span><span class="s2">:</span><span class="k">${</span><span class="nv">WEB_PORT</span><span class="k">}</span><span class="s2">/rhcos-4.2.0-x86_64-metal-bios.raw.gz coreos.inst.ignition_url=http://</span><span class="k">${</span><span class="nv">HOST_IP</span><span class="k">}</span><span class="s2">:</span><span class="k">${</span><span class="nv">WEB_PORT</span><span class="k">}</span><span class="s2">/install_dir/worker.ign"</span>
+<span class="k">done</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Setup the RHEL guest image that we downloaded for the load balancer.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>virt-customize <span class="nt">-a</span> /var/lib/libvirt/images/<span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="nt">-lb</span>.qcow2 <span class="se">\</span>
+  <span class="nt">--uninstall</span> cloud-init <span class="se">\</span>
+  <span class="nt">--ssh-inject</span> root:file:<span class="nv">$SSH_KEY</span> <span class="nt">--selinux-relabel</span> <span class="se">\</span>
+  <span class="nt">--sm-credentials</span> <span class="s2">"</span><span class="k">${</span><span class="nv">RHNUSER</span><span class="k">}</span><span class="s2">:password:</span><span class="k">${</span><span class="nv">RHNPASS</span><span class="k">}</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="nt">--sm-register</span> <span class="nt">--sm-attach</span> auto <span class="nt">--install</span> haproxy
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Create the load balancer VM.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>virt-install <span class="nt">--import</span> <span class="nt">--name</span> <span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="nt">-lb</span> <span class="se">\</span>
+  <span class="nt">--disk</span> /var/lib/libvirt/images/<span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="nt">-lb</span>.qcow2 <span class="nt">--memory</span> 1024 <span class="nt">--cpu</span> host <span class="nt">--vcpus</span> 1 <span class="se">\</span>
+  <span class="nt">--network</span> <span class="nv">network</span><span class="o">=</span><span class="k">${</span><span class="nv">VIR_NET</span><span class="k">}</span> <span class="nt">--noreboot</span> <span class="nt">--noautoconsole</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p><strong><font color="orange">[CHECK POINT]</font></strong></p>
+
+    <p>We have just created 7 virtual machines in KVM using virt-install. virt-install should power-off these VMs once it successfully finishes. Wait for VMs to be properly installed and powered off. You can use the following command to watch the status of the VMs:</p>
+
+    <p><code class="highlighter-rouge">watch "virsh list --all | grep '${CLUSTER_NAME}-'"</code></p>
+
+    <p>If the coreos VMs are note getting turned off, it most likely means that coreos was unable to fetch the image and ignition files. Open the VMs conosle to see what is going on.</p>
+  </li>
+</ul>
+
+<h3 id="3--setup-dns-and-load-balancing">3- Setup DNS and Load balancing</h3>
+
+<ul>
+  <li>
+    <p>We will tell dnsmasq to treat our cluster domain <cluster-name>.<base-domain> as local.</base-domain></cluster-name></p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">echo</span> <span class="s2">"local=/</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="s2">/"</span> <span class="o">&gt;</span> <span class="k">${</span><span class="nv">DNS_DIR</span><span class="k">}</span>/<span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span>.conf
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Start up all the VMs.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for </span>x <span class="k">in </span>lb bootstrap master-1 master-2 master-3 worker-1 worker-2
+<span class="k">do
+  </span>virsh start <span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span>-<span class="nv">$x</span>
+<span class="k">done</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Find the IP and MAC address of the bootstrap VM. Add DHCP reservation (so the VM always get the same IP) and an entry in /etc/hosts:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">IP</span><span class="o">=</span><span class="si">$(</span>virsh domifaddr <span class="s2">"</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">-bootstrap"</span> | <span class="nb">grep </span>ipv4 | <span class="nb">head</span> <span class="nt">-n1</span> | <span class="nb">awk</span> <span class="s1">'{print $4}'</span> | <span class="nb">cut</span> <span class="nt">-d</span><span class="s1">'/'</span> <span class="nt">-f1</span><span class="si">)</span>
+<span class="nv">MAC</span><span class="o">=</span><span class="si">$(</span>virsh domifaddr <span class="s2">"</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">-bootstrap"</span> | <span class="nb">grep </span>ipv4 | <span class="nb">head</span> <span class="nt">-n1</span> | <span class="nb">awk</span> <span class="s1">'{print $2}'</span><span class="si">)</span>
+virsh net-update <span class="k">${</span><span class="nv">VIR_NET</span><span class="k">}</span> add-last ip-dhcp-host <span class="nt">--xml</span> <span class="s2">"&lt;host mac='</span><span class="nv">$MAC</span><span class="s2">' ip='</span><span class="nv">$IP</span><span class="s2">'/&gt;"</span> <span class="nt">--live</span> <span class="nt">--config</span>
+<span class="nb">echo</span> <span class="s2">"</span><span class="nv">$IP</span><span class="s2"> bootstrap.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="s2">"</span> <span class="o">&gt;&gt;</span> /etc/hosts
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Find the IP and MAC address of the master VMs. Add DHCP reservation (so the VMs always gets the same IP), and an entry in /etc/hosts. We will also add the corresponding etcd host and SRV record:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for </span>i <span class="k">in</span> <span class="o">{</span>1..3<span class="o">}</span>
+<span class="k">do
+  </span><span class="nv">IP</span><span class="o">=</span><span class="si">$(</span>virsh domifaddr <span class="s2">"</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">-master-</span><span class="k">${</span><span class="nv">i</span><span class="k">}</span><span class="s2">"</span> | <span class="nb">grep </span>ipv4 | <span class="nb">head</span> <span class="nt">-n1</span> | <span class="nb">awk</span> <span class="s1">'{print $4}'</span> | <span class="nb">cut</span> <span class="nt">-d</span><span class="s1">'/'</span> <span class="nt">-f1</span><span class="si">)</span>
+  <span class="nv">MAC</span><span class="o">=</span><span class="si">$(</span>virsh domifaddr <span class="s2">"</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">-master-</span><span class="k">${</span><span class="nv">i</span><span class="k">}</span><span class="s2">"</span> | <span class="nb">grep </span>ipv4 | <span class="nb">head</span> <span class="nt">-n1</span> | <span class="nb">awk</span> <span class="s1">'{print $2}'</span><span class="si">)</span>
+  virsh net-update <span class="k">${</span><span class="nv">VIR_NET</span><span class="k">}</span> add-last ip-dhcp-host <span class="nt">--xml</span> <span class="s2">"&lt;host mac='</span><span class="nv">$MAC</span><span class="s2">' ip='</span><span class="nv">$IP</span><span class="s2">'/&gt;"</span> <span class="nt">--live</span> <span class="nt">--config</span>
+  <span class="nb">echo</span> <span class="s2">"</span><span class="nv">$IP</span><span class="s2"> master-</span><span class="k">${</span><span class="nv">i</span><span class="k">}</span><span class="s2">.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="s2">"</span> <span class="se">\</span>
+  <span class="s2">"etcd-</span><span class="k">$((</span>i-1<span class="k">))</span><span class="s2">.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="s2">"</span> <span class="o">&gt;&gt;</span> /etc/hosts
+  <span class="nb">echo</span> <span class="s2">"srv-host=_etcd-server-ssl._tcp.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="s2">,etcd-</span><span class="k">$((</span>i-1<span class="k">))</span><span class="s2">.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="s2">,2380,0,10"</span> <span class="o">&gt;&gt;</span> <span class="k">${</span><span class="nv">DNS_DIR</span><span class="k">}</span>/<span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span>.conf
+<span class="k">done</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Find the IP and MAC address of the worker VMs. Add DHCP reservation (so the VM always get the same IP) and an entry in /etc/hosts.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for </span>i <span class="k">in</span> <span class="o">{</span>1..2<span class="o">}</span>
+<span class="k">do
+   </span><span class="nv">IP</span><span class="o">=</span><span class="si">$(</span>virsh domifaddr <span class="s2">"</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">-worker-</span><span class="k">${</span><span class="nv">i</span><span class="k">}</span><span class="s2">"</span> | <span class="nb">grep </span>ipv4 | <span class="nb">head</span> <span class="nt">-n1</span> | <span class="nb">awk</span> <span class="s1">'{print $4}'</span> | <span class="nb">cut</span> <span class="nt">-d</span><span class="s1">'/'</span> <span class="nt">-f1</span><span class="si">)</span>
+   <span class="nv">MAC</span><span class="o">=</span><span class="si">$(</span>virsh domifaddr <span class="s2">"</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">-worker-</span><span class="k">${</span><span class="nv">i</span><span class="k">}</span><span class="s2">"</span> | <span class="nb">grep </span>ipv4 | <span class="nb">head</span> <span class="nt">-n1</span> | <span class="nb">awk</span> <span class="s1">'{print $2}'</span><span class="si">)</span>
+   virsh net-update <span class="k">${</span><span class="nv">VIR_NET</span><span class="k">}</span> add-last ip-dhcp-host <span class="nt">--xml</span> <span class="s2">"&lt;host mac='</span><span class="nv">$MAC</span><span class="s2">' ip='</span><span class="nv">$IP</span><span class="s2">'/&gt;"</span> <span class="nt">--live</span> <span class="nt">--config</span>
+   <span class="nb">echo</span> <span class="s2">"</span><span class="nv">$IP</span><span class="s2"> worker-</span><span class="k">${</span><span class="nv">i</span><span class="k">}</span><span class="s2">.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="s2">"</span> <span class="o">&gt;&gt;</span> /etc/hosts
+<span class="k">done</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Find the IP and MAC address of the load balancer VM. Add DHCP reservation (so the VM always get the same IP) and an entry in /etc/hosts. We will also add the api and api-int host records as they should point to this load balancer.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">LBIP</span><span class="o">=</span><span class="si">$(</span>virsh domifaddr <span class="s2">"</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">-lb"</span> | <span class="nb">grep </span>ipv4 | <span class="nb">head</span> <span class="nt">-n1</span> | <span class="nb">awk</span> <span class="s1">'{print $4}'</span> | <span class="nb">cut</span> <span class="nt">-d</span><span class="s1">'/'</span> <span class="nt">-f1</span><span class="si">)</span>
+<span class="nv">MAC</span><span class="o">=</span><span class="si">$(</span>virsh domifaddr <span class="s2">"</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">-lb"</span> | <span class="nb">grep </span>ipv4 | <span class="nb">head</span> <span class="nt">-n1</span> | <span class="nb">awk</span> <span class="s1">'{print $2}'</span><span class="si">)</span>
+virsh net-update <span class="k">${</span><span class="nv">VIR_NET</span><span class="k">}</span> add-last ip-dhcp-host <span class="nt">--xml</span> <span class="s2">"&lt;host mac='</span><span class="nv">$MAC</span><span class="s2">' ip='</span><span class="nv">$LBIP</span><span class="s2">'/&gt;"</span> <span class="nt">--live</span> <span class="nt">--config</span>
+<span class="nb">echo</span> <span class="s2">"</span><span class="nv">$LBIP</span><span class="s2"> lb.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="s2">"</span> <span class="se">\</span>
+<span class="s2">"api.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="s2">"</span> <span class="se">\</span>
+<span class="s2">"api-int.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="s2">"</span> <span class="o">&gt;&gt;</span> /etc/hosts
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Create the wild-card DNS record and point it to the load balancer:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">echo</span> <span class="s2">"address=/apps.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="s2">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="s2">/</span><span class="k">${</span><span class="nv">LBIP</span><span class="k">}</span><span class="s2">"</span> <span class="o">&gt;&gt;</span> <span class="k">${</span><span class="nv">DNS_DIR</span><span class="k">}</span>/<span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span>.conf
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Configure load balancing (haproxy). We will add frontend/backend configuration in haproxy to point the required ports (6443, 22623, 80, 443) to their corresponding endpoints:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Optional,</span>
+<span class="c"># Just to make sure SSH access is clear</span>
+    
+ssh-keygen <span class="nt">-R</span> lb.<span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span>.<span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span>
+ssh-keygen <span class="nt">-R</span> <span class="nv">$LBIP</span>
+ssh <span class="nt">-o</span> <span class="nv">StrictHostKeyChecking</span><span class="o">=</span>no lb.<span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span>.<span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span> <span class="nb">true</span>
+</code></pre></div>    </div>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ssh lb.<span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span>.<span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span> <span class="o">&lt;&lt;</span><span class="no">EOF</span><span class="sh">
+    
+# Allow haproxy to listen on custom ports
+semanage port -a -t http_port_t -p tcp 6443
+semanage port -a -t http_port_t -p tcp 22623
+    
+echo '
+global
+  log 127.0.0.1 local2
+  chroot /var/lib/haproxy
+  pidfile /var/run/haproxy.pid
+  maxconn 4000
+  user haproxy
+  group haproxy
+  daemon
+  stats socket /var/lib/haproxy/stats
+    
+defaults
+  mode tcp
+  log global
+  option tcplog
+  option dontlognull
+  option redispatch
+  retries 3
+  timeout queue 1m
+  timeout connect 10s
+  timeout client 1m
+  timeout server 1m
+  timeout check 10s
+  maxconn 3000
+# 6443 points to control plan
+frontend </span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">-api *:6443
+  default_backend master-api
+backend master-api
+  balance source
+  server bootstrap bootstrap.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">:6443 check
+  server master-1 master-1.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">:6443 check
+  server master-2 master-2.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">:6443 check
+  server master-3 master-3.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">:6443 check
+    
+# 22623 points to control plane
+frontend </span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">-mapi *:22623
+  default_backend master-mapi
+backend master-mapi
+  balance source
+  server bootstrap bootstrap.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">:22623 check
+  server master-1 master-1.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">:22623 check
+  server master-2 master-2.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">:22623 check
+  server master-3 master-3.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">:22623 check
+    
+# 80 points to worker nodes
+frontend </span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">-http *:80
+  default_backend ingress-http
+backend ingress-http
+  balance source
+  server worker-1 worker-1.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">:80 check
+  server worker-2 worker-2.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">:80 check
+    
+# 443 points to worker nodes
+frontend </span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">-https *:443
+  default_backend infra-https
+backend infra-https
+  balance source
+  server worker-1 worker-1.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">:443 check
+  server worker-2 worker-2.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="sh">.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">:443 check
+' &gt; /etc/haproxy/haproxy.cfg
+    
+systemctl start haproxy
+systemctl enable haproxy
+</span><span class="no">EOF
+</span></code></pre></div>    </div>
+  </li>
+  <li>
+    <p><strong><font color="orange">[CHECK POINT]</font></strong></p>
+
+    <p>Make sure haproxy in the load balancer VM is up and running and listening on the desired ports:</p>
+
+    <p><code class="highlighter-rouge">ssh lb.${CLUSTER_NAME}.${BASE_DOM} systemctl status haproxy</code></p>
+
+    <p><code class="highlighter-rouge">ssh lb.${CLUSTER_NAME}.${BASE_DOM} netstat -nltupe | grep ':6443\|:22623\|:80\|:443'</code></p>
+  </li>
+  <li>
+    <p>Reload NetworkManager and Libvirt for DNS entries to be loaded properly:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>systemctl reload NetworkManager
+systemctl restart libvirtd
+</code></pre></div>    </div>
+
+    <p>If you are using separate dnsmasq, restart it:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>systemctl restart dnsmasq
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h3 id="4--bootstrap-openshift-4-cluster">4- BootStrap OpenShift 4 Cluster</h3>
+
+<ul>
+  <li>
+    <p>Start the OpenShift installation, stopping at bootrap completion:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./openshift-install <span class="nt">--dir</span><span class="o">=</span>install_dir wait-for bootstrap-complete
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p><strong><font color="orange">[CHECK POINT]</font></strong></p>
+
+    <p>The OpenShift bootstrap process has started and the control plane will now download a bunch of container images from the registry (quay.io). If internet connection is slow, this will take a long time and might timeout.</p>
+
+    <p>From a new terminal on the host, ssh into the bootstrap node and watch the bootkube.service service:</p>
+
+    <p><code class="highlighter-rouge">ssh core@&lt;bootstrap-node&gt; journalctl -b -f -u bootkube.service</code></p>
+
+    <p>Wait until the installer gives you the following message:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>INFO API v1.13.4+8560dd6 up
+INFO Waiting up to 30m0s <span class="k">for </span>bootstrapping to complete...
+DEBUG Bootstrap status: <span class="nb">complete
+</span>INFO It is now safe to remove the bootstrap resources
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>At this point the bootstrap should have successfully finished and the openshift-install should have told you to that its now safe to remove the bootstrap.</p>
+
+    <p>You can login to your openshift cluster and make sure that all the nodes are in a ready state:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">export </span><span class="nv">KUBECONFIG</span><span class="o">=</span>install_dir/auth/kubeconfig
+./oc get nodes
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Once you have verified that all cluster nodes (3 master and 2 worker) are in a ready state, lets remove the boostrap entries from our load balancer (haproxy).</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ssh lb.<span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span>.<span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span> <span class="o">&lt;&lt;</span><span class="no">EOF</span><span class="sh">
+sed -i '/bootstrap</span><span class="se">\.</span><span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="se">\.</span><span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span><span class="sh">/d' /etc/haproxy/haproxy.cfg
+systemctl restart haproxy
+</span><span class="no">EOF
+</span></code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Delete the bootstrap VM</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>virsh destroy <span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="nt">-bootstrap</span>
+virsh undefine <span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span><span class="nt">-bootstrap</span> <span class="nt">--remove-all-storage</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>We can close the screen session running the python web server.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>screen <span class="nt">-S</span> <span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span> <span class="nt">-X</span> quit
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Since we do not have a RWX storage type at the moment, we will patch image registry configuration to use “EmptyDir” for storage.</p>
+
+    <p><strong>NOTE:</strong> This command will fail early on, as the cluster operators are being rolled out. If it fails try after a minute or so.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./oc patch configs.imageregistry.operator.openshift.io cluster <span class="nt">--type</span> merge <span class="nt">--patch</span> <span class="s1">'{"spec":{"storage":{"emptyDir":{}}}}'</span><span class="sb">`</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>At this point OpenShift’s cluster operators are being rolled out. Wait for the cluster operators to be fully available.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>watch <span class="s2">"./oc get clusterversion; echo; ./oc get clusteroperators"</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p><strong><font color="orange">[CHECK POINT]</font></strong></p>
+
+    <p>When all the cluster operators are fully available, it should look some thing like this:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># ./oc get clusteroperators</span>
+NAME                               VERSION AVAILABLE PROGRESSING DEGRADED SINCE
+authentication                     4.1.9 True False False 11m
+cloud-credential                   4.1.9 True False False 24m
+cluster-autoscaler                 4.1.9 True False False 24m
+console                            4.1.9 True False False 13m
+dns                                4.1.9 True False False 22m
+image-registry                     4.1.9 True False False 2m58s
+ingress                            4.1.9 True False False 16m
+kube-apiserver                     4.1.9 True False False 20m
+kube-controller-manager            4.1.9 True False False 20m
+kube-scheduler                     4.1.9 True False False 20m
+machine-api                        4.1.9 True False False 23m
+machine-config                     4.1.9 True False False 22m
+marketplace                        4.1.9 True False False 16m
+monitoring                         4.1.9 True False False 13m
+network                            4.1.9 True False False 22m
+node-tuning                        4.1.9 True False False 16m
+openshift-apiserver                4.1.9 True False False 18m
+openshift-controller-manager       4.1.9 True False False 20m
+openshift-samples                  4.1.9 True False False 6m13s
+operator-lifecycle-manager         4.1.9 True False False 20m
+operator-lifecycle-manager-catalog 4.1.9 True False False 20m
+service-ca                         4.1.9 True False False 23m
+service-catalog-apiserver          4.1.9 True False False 17m
+service-catalog-controller-manager 4.1.9 True False False 18m
+storage                            4.1.9 True False False 17m
+    
+    
+<span class="c"># ./oc get clusterversion</span>
+NAME    VERSION AVAILABLE PROGRESSING SINCE STATUS
+version 4.1.9   True      False       3m46s Cluster version is 4.1.9
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h3 id="5--finish-installation-and-access-the-cluster">5- Finish Installation and Access the Cluster</h3>
+
+<ul>
+  <li>
+    <p>At this point you are pretty much done. Finish the installation by running:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./openshift-install <span class="nt">--dir</span><span class="o">=</span>install_dir wait-for install-complete
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p><strong><font color="orange">[CHECK POINT]</font></strong></p>
+
+    <p>The opshift-install should give you an output similar to:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>INFO Waiting up to 30m0s <span class="k">for </span>the cluster at https://api.ocp41.local:6443 to initialize...
+INFO Waiting up to 10m0s <span class="k">for </span>the openshift-console route to be created...
+INFO Install <span class="nb">complete</span><span class="o">!</span>
+INFO To access the cluster as the system:admin user when using <span class="s1">'oc'</span>, run <span class="s1">'export KUBECONFIG=/home/knaeem/Desktop/ocp4/install_dir/auth/kubeconfig'</span>
+INFO Access the OpenShift web-console here: https://console-openshift-console.apps.ocp41.local
+INFO Login to the console with user: kubeadmin, password: XXXX-XXXX-XXXX-XXXX
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>You can now login to the cluster using the kubeadmin user from the command-line:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">KUBE_PASS</span><span class="o">=</span><span class="si">$(</span><span class="nb">cat </span>install_dir/auth/kubeadmin-password<span class="si">)</span>
+./oc login <span class="nt">-u</span> kubeadmin <span class="nt">-p</span> <span class="nv">$KUBE_PASS</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Access the cluster from the browser:</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>xdg-open https://console-openshift-console.apps.<span class="k">${</span><span class="nv">CLUSTER_NAME</span><span class="k">}</span>.<span class="k">${</span><span class="nv">BASE_DOM</span><span class="k">}</span>
+</code></pre></div>    </div>
+
+    <p><img src="/public/media/openshift-4-upi-install-libvirt-kvm/Screenshot_2019-08-17_Login_Red_Hat_OpenShift_Container_Platform.png" alt="OpenShift 4 Screenshot" /></p>
+
+    <p><img src="/public/media/openshift-4-upi-install-libvirt-kvm/Screenshot_2019-08-17_Cluster_Status_Red_Hat_OpenShift_Container_Platform.png" alt="OpenShift 4 Screenshot" /></p>
+
+    <p><img src="/public/media/openshift-4-upi-install-libvirt-kvm/Screenshot_2019-08-17_Nodes_Red_Hat_OpenShift_Container_Platform.png" alt="OpenShift 4 Screenshot" /></p>
+
+    <p><img src="/public/media/openshift-4-upi-install-libvirt-kvm/Screenshot_2019-08-17_Projects_Red_Hat_OpenShift_Container_Platform.png" alt="OpenShift 4 Screenshot" /></p>
+  </li>
+</ul>
+
+<h2 id="known-issues">Known Issues</h2>
+
+<ul>
+  <li>
+    <p>Make sure that virtualization support is enabled in BIOS. If its not enabled, libvirt will probably not complain but the CPU emulation will make the VMs super slow and the CoreOS VMs won’t boot properly.</p>
+  </li>
+  <li>
+    <p>If you are getting timed out while waiting for Kubernetes and the installer <code class="highlighter-rouge">./openshift-install --dir=install_dir wait-for bootstrap-complete</code> throws the following error:</p>
+
+    <p><code class="highlighter-rouge">FATAL waiting for Kubernetes API: context deadline exceeded</code></p>
+
+    <p>Check the following</p>
+
+    <ul>
+      <li>
+        <p>Make sure that you have good internet speed. If the internet is slow it might cause the installer to timeout before the images get downloaded.</p>
+      </li>
+      <li>
+        <p>Make sure the first nameserver on the host in /etc/resolv.conf is 127.0.0.1, and that NetworkManager restart is not resetting it to something else.</p>
+      </li>
+      <li>
+        <p>Login into the one of the master node <code class="highlighter-rouge">ssh core@master-1.&lt;cluster-name&gt;.&lt;base-domain&gt;</code> using the ssh key you selected during the setup. Then become root (sudo -i) and run (critctl ps). You should see a container named “discover”. See the logs of this container (crictl logs <container-id>) to get a clue on why things are not starting up.</container-id></p>
+      </li>
+      <li>
+        <p>If have figured out and fixed the issue, its safe re run this command (./openshift-install –dir=install_dir wait-for bootstrap-complete). You don’t have to scratch every thing and re-run.</p>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+:ET

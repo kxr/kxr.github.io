@@ -13,21 +13,25 @@ I have written a bash script to manage these remote tunnels. Using this script y
 
 This will be run on the system from which you want to create the tunnel to your server. We will clone it from git in a temporary location, copy the script to /opt and make it executeable.
 
-    cd /tmp/
-    git clone https://github.com/kxr/rssht.git
-    mv /tmp/rssht/rssht /opt/rssht
-    chmod +x /opt/rssht
+~~~ bash
+cd /tmp/
+git clone https://github.com/kxr/rssht.git
+mv /tmp/rssht/rssht /opt/rssht
+chmod +x /opt/rssht
+~~~
 
 Note: You can put this script where ever you want and rename this script to whatever you want; Just make sure that it can be excecuted by the user you are planning to run it as.
 
 
 ### 2- Edit the script and set the host/port configuration variables:
 
-    REMOTE_HOST=live.host.com   # The remote host to which you want to forward the ports
+~~~ bash
+REMOTE_HOST=live.host.com   # The remote host to which you want to forward the ports
 
-    REMOTE_SSH_PORT=22          # SSH port of the remote host
+REMOTE_SSH_PORT=22          # SSH port of the remote host
 
-    REMOTE_USER=root            # SSH user on the remote host
+REMOTE_USER=root            # SSH user on the remote host
+~~~
 
 Note: There are other advance configuration options as well. Check the script for more details.
 
@@ -35,13 +39,15 @@ Note: There are other advance configuration options as well. Check the script fo
 
 This is the list of ports forwarding, and the format is exactly what you would use in ssh command after the -R switch. This variable is an array and you can have as many values (forwardings) as you want. Suppose you want port 22 (ssh) and port 80 (http) on this system to be forwarded to port 10122 and 10180 respectively on the remote server, then this variable will look something like this:
 
-    REMOTE_FWDS=(   
+~~~ bash
+REMOTE_FWDS=(   
 
-    10122:localhost:22
+10122:localhost:22
 
-    10180:localhost:80
+10180:localhost:80
 
-    )
+)
+~~~
 
 ### 4- Setup password less login from this machine to the remote server:
 
@@ -49,43 +55,52 @@ Yes, this script expects a password-less ssh connection to the remote host (if y
 
 Running the script with --help or install as first argument will give you quick instructions (based on the configuration variables you set) on how to setup the password-less ssh login to the remote server and add the script to cron job when required.
 
-    [root@host ~]# /opt/rssht install
-    INSTALLATION INSTRUCTIONS:
+~~~ shell
+[root@host ~]# /opt/rssht install
+INSTALLATION INSTRUCTIONS:
 
-    # Set the configuration variables and forwardings
+# Set the configuration variables and forwardings
 
-    # Make sure you have ssh keys generated
-    ssh-keygen
+# Make sure you have ssh keys generated
+ssh-keygen
 
-    # Setup password-less login to the remote host
-    ssh-copy-id 'live.host.com -l root -p 22'
+# Setup password-less login to the remote host
+ssh-copy-id 'live.host.com -l root -p 22'
 
-    # Add the cron job
-    echo '*/5 * * * * root /opt/rssht' > /etc/cron.d/rssht_live.host.com
-
+# Add the cron job
+echo '*/5 * * * * root /opt/rssht' > /etc/cron.d/rssht_live.host.com
+~~~
 
 ### 5- Run the script:
 
 Once the password less login is setup, simply run the script. It should give you a success message with the pid of the ssh session:
 
-    [root@host ~]# /opt/rssht
-    RSSHT to host root@live.host.com:22  started successfully ssh pid: 12779
+~~~ shell
+[root@host ~]# /opt/rssht
+RSSHT to host root@live.host.com:22  started successfully ssh pid: 12779
+~~~
 
 Once the reverse tunnel is started, running the script again should check the status of the running session:
 
-    [root@host ~]# /opt/rssht
-    ssh connection is fine, exiting
-    [root@host ~]# /opt/rssht
-    ssh connection is fine, exiting
+~~~ shell
+[root@host ~]# /opt/rssht
+ssh connection is fine, exiting
+[root@host ~]# /opt/rssht
+ssh connection is fine, exiting
+~~~
 
 You can pass the stop argument if you want to kill the session and remove the tunnel:
 
-    [root@hplt ~]# /opt/rssht stop
-    Stop argument passed, killing ..
+~~~ bash
+[root@hplt ~]# /opt/rssht stop
+Stop argument passed, killing ..
+~~~
 
 Alternatively, if you want the tunnel to be permanent, you can add the cron entry for this script. Running the script with the "install" argument will give you a quick command to enable cron job to run this script every 5 minutes:
 
-    echo '*/5 * * * * root /opt/rssht_1' &gt; /etc/cron.d/rssht_live.host.com
+~~~ bash
+echo '*/5 * * * * root /opt/rssht_1' &gt; /etc/cron.d/rssht_live.host.com
+~~~
 
 
 > QUICK TIP: When using the script in persistent/cron mode, there is a configuration variable in the script called REFRESH_SOCKET. You can set it to a non-zero positive number and the script will reset (exit and reconnect) the ssh socket connection if its that many minutes old. For example, if this variable is set to 60, the script will reset the connection ever hour. This could be very useful if the connection is unstable and gets stuck a lot. To disable this feature set the variable to 0.
