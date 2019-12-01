@@ -7,7 +7,7 @@ I have a huge passion for monitoring, and performance monitoring among all types
 
 Here is a quick preview of the tool. Just the web interface makes you fall in love with it: 
 
-![netdata]({{ site.baseurl }}public/media/netdata-interface-preview.gif)
+![netdata]({{ "/" | relative_url }}public/media/netdata-interface-preview.gif)
 
 It is true real-time. Extremely useful for debugging live systems and digging down on bottle necks. It can also be used to monitor the system during the stress/load/performance testing.
 
@@ -118,9 +118,9 @@ If you installed it on a remote host, make sure the firewall on that host and an
 
 Here is a screen shot of netdata, freshly installed on my Fedora 23 laptop, with the default configuration:
 
-![netdata-zbook-screenshot]({{ site.baseurl }}public/media/netdata-screenshot-zbook.png)
+![netdata-zbook-screenshot]({{ "/" | relative_url }}public/media/netdata-screenshot-zbook.png)
 
 Here is the CPU utilization grouped by applications:
 
-![netdata-zbook-screenshot]({{ site.baseurl }}public/media/netdata-apps-screenshot-zbook.png)
+![netdata-zbook-screenshot]({{ "/" | relative_url }}public/media/netdata-apps-screenshot-zbook.png)
 

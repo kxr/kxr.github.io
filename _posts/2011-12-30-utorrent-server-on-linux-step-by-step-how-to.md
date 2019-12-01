@@ -569,7 +569,7 @@ or via the ipaddress/hostname if accessing from a remote computer:
 
 Here is a screen-shot:
 
-![placeholder]({{ site.baseurl }}public/media/utserver.png "Utorrent Server GUI Screenshot")
+![placeholder]({{ "/" | relative_url }}public/media/utserver.png "Utorrent Server GUI Screenshot")
 
 #### Playing with the configuration:
 

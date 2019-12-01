@@ -1,26 +1,26 @@
 <div class="sidebar">
   <div class="container sidebar-sticky">
     <div class="sidebar-about">
-      <img class="profile-pic" src="{{ site.baseurl }}public/imgs/profile-pic.jpg" />
+      <img class="profile-pic" src="{{ "/" | relative_url }}public/imgs/profile-pic.jpg" />
       <h1>
-        <a href="{{ site.baseurl }}">
+        <a href="{{ "/" | relative_url }}">
           {{ site.title }}
         </a>
       </h1>
       <div class="icons-row">
-	<a href="https://www.linkedin.com/in/khizern"> <img class="icons-row-img" width="40" height="40" src="{{ site.baseurl }}public/imgs/linkedin-icon.png" /> </a>
+	<a href="https://www.linkedin.com/in/khizern"> <img class="icons-row-img" width="40" height="40" src="{{ "/" | relative_url }}public/imgs/linkedin-icon.png" /> </a>
       </div>
       <div class="icons-row">
-	<a href="https://github.com/kxr"> <img class="icons-row-img" width="40" height="40" src="{{ site.baseurl }}public/imgs/github-icon.png" /> </a>
+	<a href="https://github.com/kxr"> <img class="icons-row-img" width="40" height="40" src="{{ "/" | relative_url }}public/imgs/github-icon.png" /> </a>
       </div>
       <div class="icons-row">
-	<a href="mailto:khizernaeem@gmail.com"> <img class="icons-row-img" width="40" height="40" src="{{ site.baseurl }}public/imgs/gmail-icon.png" /> </a>
+	<a href="mailto:khizernaeem@gmail.com"> <img class="icons-row-img" width="40" height="40" src="{{ "/" | relative_url }}public/imgs/gmail-icon.png" /> </a>
       </div>
       <p class="lead">{{ site.description }}</p>
     </div>
 
     <nav class="sidebar-nav">
-      <a class="sidebar-nav-item{% if page.url == site.baseurl %} active{% endif %}" href="{{ site.baseurl }}">Home</a>
+      <a class="sidebar-nav-item{% if page.url == site.baseurl %} active{% endif %}" href="{{ "/" | relative_url }}">Home</a>
 
       {% comment %}
         The code below dynamically generates a sidebar nav of pages with
@@ -35,10 +35,9 @@
           {% endif %}
         {% endif %}
       {% endfor %}
-    <a class="sidebar-nav-item" href="{{ site.baseurl }}public/media/CV_KhizerNaeem_20170328.pdf">Résumé</a>
+    <a class="sidebar-nav-item" href="{{ "/" | relative_url }}public/media/CV_KhizerNaeem_20170328.pdf">Résumé</a>
 
     </nav>
 
-    <p><small><i>Powered by Jekyll on Github Pages</i></small></p>
   </div>
 </div>
