@@ -1,0 +1,558 @@
+I"1�<p>It has been six years since I migrated to Linux (from windows) and never looked back. I used to use uTorrent on windows as my torrent client. It was small, light-weight and very user friendly. Frankly speaking in these six years of my linux voyage, I never found any alternative to that. Until recently I heard that utorrent is now available for linux. Keeping my hopes high, I gave it a try and it lived up to my expectations. As expected it is free but closed-source, with a little hope from the forums that it might become open-source in the future. But anyways, I am really thankful to the utorrent team for briniging out utorrent for linux.</p>
+
+<p>A couple of things felt missing but still it is  better than the most, infact, all! It is currently an alpha release of version 3.0 build, with only web-based GUI and 32bit release (requires 32bit libraries on x64 systems).</p>
+
+<h2 id="here-is-a-complete-step-by-step-installation-guide">Here is a complete step by step installation guide:</h2>
+
+<h3 id="step-0-pre-requisites">Step 0: Pre-Requisites</h3>
+
+<p>According to the website:</p>
+
+<blockquote>
+  <p>System Requirements:</p>
+  <ul>
+    <li>x86 Ubuntu 9.10+, Debian 5+, Fedora 12+</li>
+    <li>Linux kernel 2.6.13 or newer required</li>
+  </ul>
+</blockquote>
+
+<p>The utserver binary requires glibc-2.11 or newer. Do check this before continuing. To check your version of glibc:</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash">rpm <span class="nt">-q</span> glibc</code></pre></figure>
+
+<p>(Note: If you have old libraries, or facing any library related error, I have a different guide for you <a href="/2011/12/27/formerr-in-bind/">HERE</a> )</p>
+
+<p>I am using a 32 bit Centos 6.2, but this guide should work with most linux distributions. If you are using a x64 distribution, you’ll need to install all the 32 bit libraries.</p>
+
+<p>In case of a 32 bit distro, there are hardly any dependencies to be installed. They are installed by default even in the minimal installations. Here is the list of dependencies anyways:</p>
+
+<ul>
+  <li>glibc &gt;= 2.11</li>
+  <li>libgcc</li>
+  <li>openssl</li>
+  <li>krb5-libs</li>
+  <li>libcom_err</li>
+  <li>zlib</li>
+  <li>keyutils-libs</li>
+  <li>libselinux</li>
+</ul>
+
+<p>If you are using a 32 bit distro:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">yum <span class="nb">install </span>glibc libgcc openssl krb5-libs libcom_err zlib keyutils-libs libselinux</code></pre></figure>
+
+<p>If you are using a 64bit distro, install the 32bit libraries:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">yum <span class="nb">install </span>glibc glibc.i[36]86 libgcc libgcc.i[36]86 openssl openssl.i[36]86 krb5-libs krb5-libs.i[36]86 libcom_err libcom_err.i[36]86 zlib zlib.i[36]86 keyutils-libs keyutils-libs.i[36]86 libselinux libselinux.i[36]86</code></pre></figure>
+
+<h3 id="step-1-make-basic-directories">Step 1: Make basic directories</h3>
+
+<p>I will keep it in /opt (ofcourse you can keep it anywhere you like)</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell"><span class="nb">mkdir</span> /opt/utorrent
+<span class="nb">mkdir</span> /opt/utorrent/conf
+<span class="nb">mkdir</span> /opt/utorrent/data
+<span class="nb">mkdir</span> /opt/utorrent/pid
+<span class="nb">mkdir</span> /opt/utorrent/webui
+<span class="nb">mkdir</span> /opt/utorrent/log</code></pre></figure>
+
+<h3 id="step-2-download-µtorrent-server">Step 2: Download µTorrent Server</h3>
+
+<p>At the time of this writing, µTorrent Server alpha (3.0 build 25053) was the latest available one. You can find the latest release <a href="http://www.utorrent.com/downloads/linux">here</a>. Download the package to a tmp location, extract and then copy the required files:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">wget <span class="nt">-O</span> /tmp/utorrent-server-3.0-25053.tar.gz http://download.utorrent.com/linux/utorrent-server-3.0-25053.tar.gz
+<span class="nb">tar</span> <span class="nt">--directory</span> /tmp <span class="nt">-xzf</span> /tmp/utorrent-server-3.0-25053.tar.gz
+<span class="nb">cp</span> /tmp/utorrent-server-v3_0/utserver /opt/utorrent/
+<span class="nb">cp</span> /tmp/utorrent-server-v3_0/webui.zip /opt/utorrent/webui/</code></pre></figure>
+
+<h3 id="step-3-libraries-check">Step 3: Libraries check</h3>
+
+<p>Before proceeding further, it will be a good idea to locate any missing libraries.</p>
+
+<p>Use ldd command to find out any missing library:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">ldd <span class="nt">-r</span> /opt/utorrent/utserver</code></pre></figure>
+
+<p>You might get the following error:</p>
+
+<blockquote>
+  <p>/opt/utorrent/utserver: error while loading shared libraries: libssl.so.0.9.8: cannot open shared object file: No such file or directory</p>
+</blockquote>
+
+<p>or</p>
+
+<blockquote>
+  <p>/opt/utorrent/utserver: error while loading shared libraries: libcrypto.so.0.9.8: cannot open shared object file: No such file or directory</p>
+</blockquote>
+
+<p>If openssl is installed properly, this might be because you have a newer version of the shared library. Creating a softlink should solve the problem.</p>
+
+<p>First find out what version you have:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">find  /<span class="k">*</span>/lib /<span class="k">*</span>lib  <span class="nt">-type</span> f <span class="nt">-name</span> <span class="s2">"libssl.so.*"</span>
+find  /<span class="k">*</span>/lib /<span class="k">*</span>lib  <span class="nt">-type</span> f <span class="nt">-name</span> <span class="s2">"libcrypto.so.*"</span></code></pre></figure>
+
+<p>This will show you the library you have installed, for example in my case it showed me that I’ve libssl.so.1.0.0 and libcrypto.so.1.0.0 installed:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell"><span class="o">[</span>root@localhost ~]# find  /<span class="k">*</span>/lib /<span class="k">*</span>lib  <span class="nt">-type</span> f <span class="nt">-name</span> <span class="s2">"libssl.so.*"</span>
+
+/usr/lib/libssl.so.1.0.0
+
+
+<span class="o">[</span>root@localhost ~]# find  /<span class="k">*</span>/lib /<span class="k">*</span>lib  <span class="nt">-type</span> f <span class="nt">-name</span> <span class="s2">"libcrypto.so.*"</span>
+
+/usr/lib/libcrypto.so.1.0.0</code></pre></figure>
+
+<p>Now simply create a soft link from the one you have to the one required by utserver:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell"><span class="nb">ln</span> <span class="nt">-s</span> /usr/lib/libssl.so.1.0.0 /usr/lib/libssl.so.0.9.8
+<span class="nb">ln</span> <span class="nt">-s</span> /usr/lib/libcrypto.so.1.0.0 /usr/lib/libcrypto.so.0.9.8</code></pre></figure>
+
+<p>(ofcourse you can always install the correct version of openssl instead of doing this softlink trick)</p>
+
+<p>If every thing is fine you should get output some what like this:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell"><span class="o">[</span>root@his apps]<span class="nv">$ </span>ldd <span class="nt">-r</span> /opt/utorrent/utserver
+/opt/utorrent/utserver: /usr/lib/libcrypto.so.0.9.8: no version information available <span class="o">(</span>required by /opt/utorrent/utserver<span class="o">)</span>
+/opt/utorrent/utserver: /usr/lib/libssl.so.0.9.8: no version information available <span class="o">(</span>required by /opt/utorrent/utserver<span class="o">)</span>
+    linux-gate.so.1 <span class="o">=</span>&amp;gt<span class="p">;</span>  <span class="o">(</span>0x0042c000<span class="o">)</span>
+    libssl.so.0.9.8 <span class="o">=</span>&amp;gt<span class="p">;</span> /usr/lib/libssl.so.0.9.8 <span class="o">(</span>0x00cb8000<span class="o">)</span>
+    libcrypto.so.0.9.8 <span class="o">=</span>&amp;gt<span class="p">;</span> /usr/lib/libcrypto.so.0.9.8 <span class="o">(</span>0x009dc000<span class="o">)</span>
+    libpthread.so.0 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libpthread.so.0 <span class="o">(</span>0x00110000<span class="o">)</span>
+    libm.so.6 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libm.so.6 <span class="o">(</span>0x00800000<span class="o">)</span>
+    librt.so.1 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/librt.so.1 <span class="o">(</span>0x001a2000<span class="o">)</span>
+    libgcc_s.so.1 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libgcc_s.so.1 <span class="o">(</span>0x00465000<span class="o">)</span>
+    libc.so.6 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libc.so.6 <span class="o">(</span>0x001ab000<span class="o">)</span>
+    /lib/ld-linux.so.2 <span class="o">(</span>0x005a8000<span class="o">)</span>
+    libgssapi_krb5.so.2 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libgssapi_krb5.so.2 <span class="o">(</span>0x00c25000<span class="o">)</span>
+    libkrb5.so.3 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libkrb5.so.3 <span class="o">(</span>0x0033b000<span class="o">)</span>
+    libcom_err.so.2 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libcom_err.so.2 <span class="o">(</span>0x0012b000<span class="o">)</span>
+    libk5crypto.so.3 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libk5crypto.so.3 <span class="o">(</span>0x00622000<span class="o">)</span>
+    libresolv.so.2 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libresolv.so.2 <span class="o">(</span>0x00130000<span class="o">)</span>
+    libdl.so.2 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libdl.so.2 <span class="o">(</span>0x0045b000<span class="o">)</span>
+    libz.so.1 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libz.so.1 <span class="o">(</span>0x00767000<span class="o">)</span>
+    libkrb5support.so.0 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libkrb5support.so.0 <span class="o">(</span>0x004be000<span class="o">)</span>
+    libkeyutils.so.1 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libkeyutils.so.1 <span class="o">(</span>0x00991000<span class="o">)</span>
+    libselinux.so.1 <span class="o">=</span>&amp;gt<span class="p">;</span> /lib/libselinux.so.1 <span class="o">(</span>0x0014a000<span class="o">)</span></code></pre></figure>
+
+<p>(You can ignore the “no version information” warning). This shows every requirement is fulfilled and utorrent server can now run on this machine. Lets now do some final config tweaks.</p>
+
+<h3 id="step-4-create-config-file">Step 4: Create config file</h3>
+
+<p>In theory you can just run the utserver binary (like you did in the previous step), and utorrent server should be ready and useable. You don’t necessarily need a config file But it is always a good idea to have a config file in hand, it’ll make editing and experimenting with the configurations much easier and give you a lot more options to play with.</p>
+
+<p>I wasn’t able to find a complete and comprehensive config file. Users are either not using config file or using it just for a couple of options.</p>
+
+<p>I’ve created this config file from the documentation and added all the options I found. All the directives are explained in the comments and set to the default value.</p>
+
+<p>Here it is (only dir_root is set to /opt/utorrent/data all other values are default):</p>
+
+<figure class="highlight"><pre><code class="language-conf" data-lang="conf"><span class="c">###########################################
+###                                     ###
+### Utorrent Server v3.0 Config File    ###
+###                                     ###
+### By Khizer Naeem                     ###
+### khizernaeem@gmail.com               ###
+### Date: 29/12/2011                    ###
+###                                     ###
+###########################################
+###########################################
+# Note: - Don't use quotes or double quotes when giving a value
+#       - Don't add trailing / when specifying any directory
+</span>
+<span class="c">#####################
+## Regular Settings #
+#####################
+</span>
+<span class="c">#bind_port (integer):
+#    Default value: 6881. Port used for BitTorrent protocol. This can be any value in the range 1025-65000.
+</span><span class="n">bind_port</span>: <span class="m">6881</span>
+
+<span class="c">#max_ul_rate (integer):
+#    Default value: -1. Maximum total upload rate in kilobytes per second. -1 means unlimited. We recommend setting it to -1.
+</span><span class="n">max_ul_rate</span>: -<span class="m">1</span>
+
+<span class="c">#max_ul_rate_seed (integer):
+#    Default value: -1. Maximum per-torrent upload rate when seeding, in kilobytes per second. -1 means unlimited. We recommend setting it to -1.
+</span><span class="n">max_ul_rate_seed</span>: -<span class="m">1</span>
+
+<span class="c">#conns_per_torrent (integer):
+#    Default value: 50. Maximum number of connections for a given torrent.
+</span><span class="n">conns_per_torrent</span>: <span class="m">50</span>
+
+<span class="c">#max_total_connections (integer):
+#    Default value: 200. Maximum number of connection opened at the same time.
+</span><span class="n">max_total_connections</span>: <span class="m">200</span>
+
+<span class="c">#auto_bandwidth_management (boolean):
+#    Default value: true. If true, upload bandwidth is automatically throttled in order to not impact other applications using TCP/IP.
+</span><span class="n">auto_bandwidth_management</span>: <span class="n">true</span>
+
+<span class="c">#max_dl_rate (integer):
+#    Default value: -1. Maximum total download rate in kilobytes per second. -1 means unlimited. We recommend setting it to -1.
+</span><span class="n">max_dl_rate</span>: -<span class="m">1</span>
+
+<span class="c">#seed_ratio (integer):
+#    Default value: 0. Seed ratio in percent (%) (e.g. 100 means 100%). If not 0, seeding will stop after reaching this upload/download ratio.
+</span><span class="n">seed_ratio</span>: <span class="m">0</span>
+
+<span class="c">#seed_time (integer):
+#    Default value: 0. Time after which seeding will stop, in seconds. 0 means seeding won't stop.
+</span><span class="n">seed_time</span>: <span class="m">0</span>
+
+
+<span class="c">#####################
+# Internal Settings #
+#####################
+</span>
+<span class="c">#bind_ip (string):
+# IP address to use for socket connections. If not provided, a default IP address will be used. We do not recommend changing this value.
+</span>
+<span class="c">#ut_webui_port (integer):
+# Default value: 8080. Port number where the utserver process accepts HTTP RPC API calls to support the µTorrent-compatible HTTP interface.
+</span><span class="n">ut_webui_port</span>: <span class="m">8080</span>
+
+<span class="c">#token_auth_enable (boolean)
+# Default value: true. If true, the µTorrent HTTP interface defends against cross-site request forgeries.
+# If false, the µTorrent HTTP interface will not be protected in this manner.
+</span><span class="n">token_auth_enable</span>: <span class="n">true</span>
+
+<span class="c">#dir_root (string):
+# Default value: "". If not empty, dir_active, dir_completed, and dir_torrent_files are relative to this directory.
+</span><span class="n">dir_root</span>:/<span class="n">opt</span>/<span class="n">utorrent</span>/<span class="n">data</span>
+
+<span class="c">#dir_active (string):
+# Default value: "./". Directory in which currently downloaded data is saved.
+# Can be an absolute path or relative to dir_root or the current working directory if dir_root is not defined or an empty string.
+#dir_active: ./
+</span>
+<span class="c">#dir_completed (string):
+# Default value: "". Directory where completed downloads are stored.
+</span><span class="n">dir_completed</span>:
+
+<span class="c">#dir_download (string):
+# Default value: "". Optional directory where completed downloads can be stored, instead of in dir_completed.
+# If no value is specified for this setting, the value of dir_completed is used.
+# This option can be specified multiple times in the file - once for each directory to be designated as such.
+# This option can be used when adding torrents via the µTorrent HTTP interface, not via the SDK interface.
+# Use the action list-dirs to obtain a list of download directories from the µTorrent HTTP interface.
+# Use the option download_dir to specify which of these directories to use when adding a torrent by URL or file through the µTorrent HTTP interface;
+# The index of each entry will be in order in which each entry appears in utserver.conf
+</span><span class="n">dir_download</span>:
+
+<span class="c">#dir_torrent_files (string):
+# Default value: "". Directory where torrent files are stored. If the empty string, the value of dir_active is used.
+</span><span class="n">dir_torrent_files</span>:
+
+<span class="c">#dir_temp_files (string):
+# Default value: "". Directory where temporary files are stored. If the empty string, the value of dir_active is used.
+# Using a separate directory just for temporary files allows for deleting the files in this directory on boot and/or periodically.
+# The utserver process creates temporary files with a .utt extension,
+# if a value for this setting is specified, the utserver process will delete all files with that extension in that directory at process startup.
+# The value should specify a directory, not a symbolic link to a directory.
+</span><span class="n">dir_temp_files</span>:
+
+<span class="c">#dir_autoload (string):
+# Default value: "". Directory where torrent files will be recognized and auto-loaded. If the empty string, auto-load is disabled.
+</span><span class="n">dir_autoload</span>:
+
+<span class="c">#dir_autoload_delete (boolean):
+# Default value: false. If true, torrent files in the autoload directory will be deleted after being loaded,
+# else they will be renamed with an extension of .loaded. The dir_autoload setting must be specified for this setting to have an effect.
+</span><span class="n">dir_autoload_delete</span>: <span class="n">false</span>
+
+<span class="c">#upnp (boolean):
+# Default value: true. If true, UPNP functionality for mapping ports is used by utserver. We recommend setting this value to true.
+</span><span class="n">upnp</span>: <span class="n">true</span>
+
+<span class="c">#natpmp (boolean):
+# Default value: true. If true, NAT-PMP functionality for mapping ports is used by utserver. We recommend setting this value to true.
+</span><span class="n">natpmp</span>: <span class="n">true</span>
+
+<span class="c">#lsd (boolean):
+#    Default value: true. If true, Local Service Discovery is enabled. We recommend setting this value to true.
+</span><span class="n">lsd</span>: <span class="n">true</span>
+
+<span class="c">#dht (boolean):
+# Default value: true. If true, Distributed Hash Table extension is enabled. We recommend setting this value to true.
+</span><span class="n">dht</span>: <span class="n">true</span>
+
+<span class="c">#pex (boolean):
+# Default value: true. If true, Peer Exchange extension is enabled. We recommend setting this value to true.
+</span><span class="n">pex</span>: <span class="n">true</span>
+
+<span class="c">#rate_limit_local_peers (boolean):
+# Default value: false. If true, rate limiting also applies to communications with peers in the local subnet. We recommend setting this value to false.
+</span><span class="n">rate_limit_local_peers</span>: <span class="n">false</span>
+
+<span class="c">#disk_cache_max_size (integer):
+# Default value: 0. Maximum amount of memory used by each of the read, write, and piece caches. Value is in megabytes.
+# If 0, accepts the SDK's default choices on selecting sizes of disk caches. Maximum value is 512.
+</span><span class="n">disk_cache_max_size</span>: <span class="m">0</span>
+
+<span class="c">#preferred_interface (string):
+# Default value: "". If defined, name of network interface to be preferred,
+# when attempting to search among network interfaces for an external IP and hardware address.
+# If empty string, preferred interface is ignored.
+</span><span class="n">preferred_interface</span>:
+
+<span class="c">#admin_name (string):
+# Default value: "admin". If defined, name that must be supplied (along with the password) when authenticating to the server via the HTTP interface.
+# This allows the administrator to define an initial non-default value for this name.
+# This value will not be applied from utserver.conf if settings.dat already exists.
+</span><span class="n">admin_name</span>: <span class="n">admin</span>
+
+<span class="c">#admin_password (string):
+# Default value: "". If defined, password that must be supplied (along with the name) when authenticating to the server via the HTTP interface.
+# This allows the administrator to define an initial non-default value for this password.
+# This value will not be applied from utserver.conf if settings.dat already exists.
+</span><span class="n">admin_password</span>:
+
+<span class="c">#logmask (integer):
+# Default value: 0. A mask whose bits when set allow certain categories of log messages to be generated.
+# The bits (0 - 31) in the value of this setting correspond to a set of internal events and subsystems.
+#
+#        3 - send have
+#        6 - hole punch
+#        7 - got bad piece request
+#        8 - trace
+#        9 - piece picker
+#        10 - got bad cancel
+#        11 - got bad unchoke
+#        12 - got bad piece
+#        13 - rss
+#        14 - rss error
+#        15 - got have
+#        16 - got bad have
+#        17 - error
+#        18 - aggregated
+#        19 - disconnect
+#        20 - out connect
+#        21 - in connect
+#        22 - UPnP
+#        23 - UPnP error
+#        24 - NATPMP
+#        25 - NATPMP error
+#        26 - metadata finish
+#        27 - web UI
+#        28 - got bad reject
+#        29 - pex
+#        30 - peer messages
+#        31 - blocked connect
+</span><span class="n">logmask</span>: <span class="m">0</span>
+
+<span class="c">#dir_request (string):
+# Default value: "". Directory where maintenance request files will be recognized, loaded, and deleted.
+# If the empty string, maintenance request handling is disabled.
+#
+# Your software running on your device can create the following files in this directory in order to request the following maintenance procedures.
+#
+#    If the file c.utmr is created in or moved into this directory,
+#    the credentials necessary to access the µTorrent HTTP interface will be reset to username admin and a blank password.
+#
+#    If the file wipl.utmr is created in or moved into this directory,
+#    the IP restriction list that limits the IPs that can use the µTorrent HTTP interface is cleared,
+#    so that there will be no restrictions on IP address.
+#
+#    If the file rcf.utmr is created in or moved into this directory,
+#    the server will reload the configuration file. If you always use this method to request a configuration file reload,
+#    you can safely change the value of this setting while the server is running.
+</span>
+<span class="c">#ut_webui_dir (string):
+# Default value: "". Directory where the web UI file archive webui.zip is stored,
+# or which contains a webui subdirectory within which the unarchived web UI files are stored.
+# It can be an absolute path or set relative to the current directory.
+</span><span class="n">ut_webui_dir</span>:
+
+<span class="c">#finish_cmd (string), state_cmd (string):
+# Default value: "". If defined,
+# finish_cmd is a command that will be executed upon completion of each torrent.
+# state_cmd is a command that will be executed when a torrent changes state.
+# The command is run asynchronously as the same user that runs the server process.
+#
+#    The server permits substitutions in the command text as follows:
+#
+#    %F Name of downloaded data file (for single-file torrents)
+#    %D directory where torrent data files are saved
+#    %N torrent title
+#    %S torrent state
+#    %P previous state of torrent
+#    %L label associated with torrent
+#    %T tracker
+#    %M status message
+#    %I hex-encoded info-hash
+#
+#    State (%S) and previous state (%P) are integers that have the following values:
+#
+#    1 (error)
+#    2 (checked)
+#    3 (paused)
+#    4 (super seeding)
+#    5 (seeding)
+#    6 (downloading)
+#    7 (super seeding (forced))
+#    8 (seeding (forced))
+#    9 (downloading (forced))
+#    10 (queued seed)
+#    11 (finished)
+#    12 (queued)
+#    13 (stopped)
+</span><span class="n">finish_cmd</span>:
+<span class="n">state_cmd</span>:</code></pre></figure>
+
+<p>Don’t worry most of the lines in the config are comments (only 34 directives in total). I recommend going through it once.</p>
+
+<p>Copy-Paste this configuration into the file utserver.conf in /opt/utorrent/conf/ directory using your favourite text editor like vim or download it directly:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">wget <span class="nt">-O</span> /opt/utorrent/conf/utserver.conf http://kxr.me/blog/uts/utserver.conf</code></pre></figure>
+
+<p>Now you can start the utorrent server with the following command:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">/opt/utorrent/utserver <span class="nt">-settingspath</span> <span class="s2">"/opt/utorrent/webui/"</span> <span class="nt">-configfile</span> <span class="s2">"/opt/utorrent/conf/utserver.conf"</span> <span class="nt">-logfile</span> <span class="s2">"/opt/utorrent/log/ut.log"</span> <span class="nt">-pidfile</span> <span class="s2">"/opt/utorrent/pid/utserver.pid"</span> <span class="nt">-daemon</span></code></pre></figure>
+
+<p>and stop it with:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell"><span class="nb">kill</span> <span class="sb">`</span><span class="nb">cat</span> /opt/utorrent/pid/utserver.pid<span class="sb">`</span></code></pre></figure>
+
+<p>That is not very convenient, so lets create a script to make things easier.</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell"><span class="c">#!/bin/sh</span>
+
+<span class="nv">uts_bin</span><span class="o">=</span><span class="s2">"/opt/utorrent/utserver"</span>
+<span class="nv">pid_file</span><span class="o">=</span><span class="s2">"/opt/utorrent/pid/utserver.pid"</span>
+<span class="nv">settings_path</span><span class="o">=</span><span class="s2">"/opt/utorrent/webui/"</span>
+<span class="nv">config_file</span><span class="o">=</span><span class="s2">"/opt/utorrent/conf/utserver.conf"</span>
+<span class="nv">log_file</span><span class="o">=</span><span class="s2">"/opt/utorrent/log/ut.log"</span>
+
+start<span class="o">(){</span>
+        <span class="k">if</span> <span class="o">[</span> <span class="nt">-s</span> <span class="s2">"</span><span class="nv">$pid_file</span><span class="s2">"</span> <span class="o">]</span>
+        <span class="k">then
+                </span><span class="nb">kill</span> <span class="nt">-s</span> 0 <span class="sb">`</span><span class="nb">cat</span> <span class="nv">$pid_file</span><span class="sb">`</span> &amp;gt<span class="p">;</span> /dev/null 2&amp;gt<span class="p">;</span>&amp;amp<span class="p">;</span>1
+                <span class="k">if</span>  <span class="o">[</span> <span class="s2">"</span><span class="nv">$?</span><span class="s2">"</span> <span class="o">==</span> <span class="s2">"0"</span> <span class="o">]</span>
+                <span class="k">then
+                        </span><span class="nb">echo</span> <span class="s2">"Err: Utorrent seems to be running, PID </span><span class="sb">`</span><span class="nb">cat</span> <span class="nv">$pid_file</span><span class="sb">`</span><span class="s2">"</span>
+                <span class="k">else
+                        </span><span class="nb">echo</span> <span class="s2">"Starting Utorrent Server.."</span>
+                        <span class="nb">cd</span> <span class="nv">$settings_path</span><span class="p">;</span><span class="nv">$uts_bin</span> <span class="nt">-settingspath</span> <span class="nv">$settings_path</span> <span class="nt">-configfile</span> <span class="nv">$config_file</span> <span class="nt">-logfile</span> <span class="nv">$log_file</span> <span class="nt">-pidfile</span> <span class="nv">$pid_file</span> <span class="nt">-daemon</span>
+                <span class="k">fi
+        else
+                </span><span class="nb">echo</span> <span class="s2">"Starting Utorrent Server.."</span>
+                <span class="nb">cd</span> <span class="nv">$settings_path</span><span class="p">;</span><span class="nv">$uts_bin</span> <span class="nt">-settingspath</span> <span class="nv">$settings_path</span> <span class="nt">-configfile</span> <span class="nv">$config_file</span> <span class="nt">-logfile</span> <span class="nv">$log_file</span> <span class="nt">-pidfile</span> <span class="nv">$pid_file</span> <span class="nt">-daemon</span>
+        <span class="k">fi</span>
+<span class="o">}</span>
+stop<span class="o">(){</span>
+        <span class="k">if</span> <span class="o">[</span> <span class="nt">-s</span> <span class="s2">"</span><span class="nv">$pid_file</span><span class="s2">"</span> <span class="o">]</span>
+        <span class="k">then
+                </span><span class="nb">kill</span> <span class="nt">-s</span> 0 <span class="sb">`</span><span class="nb">cat</span> <span class="nv">$pid_file</span><span class="sb">`</span> &amp;gt<span class="p">;</span> /dev/null 2&amp;gt<span class="p">;</span>&amp;amp<span class="p">;</span>1
+                <span class="k">if</span>  <span class="o">[</span> <span class="s2">"</span><span class="nv">$?</span><span class="s2">"</span> <span class="o">==</span> <span class="s2">"0"</span> <span class="o">]</span>
+                <span class="k">then
+                        </span><span class="nb">echo</span> <span class="s2">"Stopping Utorrent Server.."</span>
+                        <span class="nb">kill</span> <span class="sb">`</span><span class="nb">cat</span> <span class="nv">$pid_file</span><span class="sb">`</span>
+                        <span class="nb">tail</span> <span class="nt">-f</span> /dev/null <span class="nt">--pid</span> <span class="sb">`</span><span class="nb">cat</span> <span class="nv">$pid_file</span><span class="sb">`</span>
+                        <span class="nb">rm</span> <span class="nt">-f</span> <span class="nv">$pid_file</span>
+                <span class="k">else
+                        </span><span class="nb">echo</span> <span class="s2">"Err: Utorrent seems to be stopped, PID file </span><span class="nv">$pid_file</span><span class="s2"> not found or empty"</span>
+                <span class="k">fi
+        else
+                </span><span class="nb">echo</span> <span class="s2">"Err: Utorrent seems to be stopped, PID file </span><span class="nv">$pid_file</span><span class="s2"> not found or empty"</span>
+        <span class="k">fi</span>
+<span class="o">}</span>
+status<span class="o">(){</span>
+        <span class="k">if</span> <span class="o">[</span> <span class="nt">-s</span> <span class="s2">"</span><span class="nv">$pid_file</span><span class="s2">"</span> <span class="o">]</span>
+        <span class="k">then
+                </span><span class="nb">kill</span> <span class="nt">-s</span> 0 <span class="sb">`</span><span class="nb">cat</span> <span class="nv">$pid_file</span><span class="sb">`</span> &amp;gt<span class="p">;</span> /dev/null 2&amp;gt<span class="p">;</span>&amp;amp<span class="p">;</span>1
+                <span class="k">if</span>  <span class="o">[</span> <span class="s2">"</span><span class="nv">$?</span><span class="s2">"</span> <span class="o">==</span> <span class="s2">"0"</span> <span class="o">]</span>
+                <span class="k">then
+                        </span><span class="nb">echo</span> <span class="s2">"Utorrent seems to be running, PID </span><span class="sb">`</span><span class="nb">cat</span> <span class="nv">$pid_file</span><span class="sb">`</span><span class="s2">"</span>
+                <span class="k">else
+                        </span><span class="nb">echo</span> <span class="s2">"PID file present, but no process with PID </span><span class="sb">`</span><span class="nb">cat</span> <span class="nv">$pid_file</span><span class="sb">`</span><span class="s2"> running"</span>
+                <span class="k">fi
+        else
+                </span><span class="nb">echo</span> <span class="s2">"Utorrent seems to be stopped, PID file </span><span class="nv">$pid_file</span><span class="s2"> not found or empty"</span>
+        <span class="k">fi</span>
+<span class="o">}</span>
+
+<span class="k">case</span> <span class="s2">"</span><span class="nv">$1</span><span class="s2">"</span> <span class="k">in
+        </span>start<span class="p">)</span>
+                start
+                <span class="p">;;</span>
+        stop<span class="p">)</span>
+                stop
+                <span class="p">;;</span>
+        reload<span class="p">)</span>
+                stop
+                <span class="nb">rm</span> <span class="nt">-vf</span> <span class="nv">$settings_path</span>/settings.dat<span class="k">*</span>
+                start
+                <span class="p">;;</span>
+        status<span class="p">)</span>
+                status
+                <span class="p">;;</span>
+        <span class="k">*</span><span class="p">)</span>
+                <span class="nb">echo</span> <span class="s2">"Usage </span><span class="nv">$0</span><span class="s2"> {start|stop|reload|status}"</span>
+                <span class="p">;;</span>
+<span class="k">esac</span></code></pre></figure>
+
+<p>Create a file called utsctl in /opt/utorrent and copy-paste the code into it using your favourite editor or download it directly:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">wget <span class="nt">-O</span> /opt/utorrent/utsctl http://kxr.me/blog/uts/utsctl</code></pre></figure>
+
+<p>Once you have created this script file, lets make it executeable:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell"><span class="nb">chmod</span> +x /opt/utorrent/utsctl</code></pre></figure>
+
+<p>And also make it easily accessible, so that we don’t have to type the whole path again and again:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell"><span class="nb">ln</span> <span class="nt">-s</span> /opt/utorrent/utsctl /usr/bin/utsctl</code></pre></figure>
+
+<p>Now starting stoping and checking the status is as easy as this:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">utsctl start
+
+utsctl stop
+
+utsctl status</code></pre></figure>
+
+<h3 id="step-5-start-µtorrent-server">Step 5: Start µTorrent Server</h3>
+
+<p>Lets now start the utorrent server:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">utsctl start</code></pre></figure>
+
+<p>It should output “server started - using locale en_US.UTF-8” and return back to bash prompt. (Optionally, you can add this command to rc.local to auto-start it at startup)</p>
+
+<p>You should now be able to access the utorrent server gui on localhost:</p>
+
+<blockquote>
+  <p>http://localhost:8080/gui</p>
+</blockquote>
+
+<p>or via the ipaddress/hostname if accessing from a remote computer:</p>
+
+<blockquote>
+  <p>http://1.2.3.4:8080/gui</p>
+</blockquote>
+
+<p>(don’t forget to allow this port in the system’s iptable firewall and any other firewall in between)</p>
+
+<p>Here is a screen-shot:</p>
+
+<p><img src="/public/media/utserver.png" alt="placeholder" title="Utorrent Server GUI Screenshot" /></p>
+
+<h4 id="playing-with-the-configuration">Playing with the configuration:</h4>
+
+<p>When you change a configuration in utserver.conf, just restarting the utserver daemon won’t update the changes in WebUI. You’ll have to remove the settings.dat files and then start the server again i.e,</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">utsctl stop
+
+<span class="nb">rm</span> <span class="nt">-f</span> /opt/utorrent/webui/settings.dat<span class="k">*</span>
+
+utsctl start</code></pre></figure>
+
+<p>I’ve added the “reload” option in the utsctl script that will do all these three things:</p>
+
+<figure class="highlight"><pre><code class="language-shell" data-lang="shell">utsctl reload</code></pre></figure>
+
+<p>Good Luck :)</p>
+
+<p>Questions/Suggestions/Comments/Corrections/Additions about this HowTo are welcome.</p>
+:ET

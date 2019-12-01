@@ -1,0 +1,44 @@
+I"�<p>A simple script that will convert squirrel web mail contacts of each user to vcard format that can then be imported to roundcube webmail.</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="c">#!/bin/bash</span>
+
+<span class="k">for </span>x <span class="k">in</span> <span class="sb">`</span><span class="nb">ls</span> <span class="k">*</span>.abook<span class="sb">`</span>
+<span class="k">do
+    </span><span class="nb">cat</span> <span class="nv">$x</span> | <span class="k">while </span><span class="nb">read </span>line
+    <span class="k">do
+        </span><span class="nb">echo</span> <span class="s2">"BEGIN:VCARD"</span> &amp;gt<span class="p">;</span>&amp;gt<span class="p">;</span> <span class="nv">$x</span>.vcf
+        <span class="nb">echo</span> <span class="s2">"VERSION:3.0"</span> &amp;gt<span class="p">;</span>&amp;gt<span class="p">;</span> <span class="nv">$x</span>.vcf
+        <span class="nb">echo</span> <span class="nt">-n</span> <span class="s2">"N:"</span> &amp;gt<span class="p">;</span>&amp;gt<span class="p">;</span> <span class="nv">$x</span>.vcf
+        <span class="nb">echo</span> <span class="nt">-n</span> <span class="sb">`</span><span class="nb">echo</span> <span class="nv">$line</span> | <span class="nb">cut</span> <span class="nt">-d</span><span class="s1">'|'</span> <span class="nt">-f3</span><span class="sb">`</span> &amp;gt<span class="p">;</span>&amp;gt<span class="p">;</span> <span class="nv">$x</span>.vcf
+        <span class="nb">echo</span> <span class="nt">-n</span> <span class="s2">";"</span> &amp;gt<span class="p">;</span>&amp;gt<span class="p">;</span> <span class="nv">$x</span>.vcf
+        <span class="nb">echo</span> <span class="sb">`</span><span class="nb">echo</span> <span class="nv">$line</span> | <span class="nb">cut</span> <span class="nt">-d</span><span class="s1">'|'</span> <span class="nt">-f2</span><span class="sb">`</span> &amp;gt<span class="p">;</span>&amp;gt<span class="p">;</span> <span class="nv">$x</span>.vcf
+        <span class="nb">echo</span> <span class="nt">-n</span> <span class="s2">"FN:"</span> &amp;gt<span class="p">;</span>&amp;gt<span class="p">;</span> <span class="nv">$x</span>.vcf
+        <span class="nb">echo</span> <span class="sb">`</span><span class="nb">echo</span> <span class="nv">$line</span> | <span class="nb">cut</span> <span class="nt">-d</span><span class="s1">'|'</span> <span class="nt">-f1</span><span class="sb">`</span> &amp;gt<span class="p">;</span>&amp;gt<span class="p">;</span> <span class="nv">$x</span>.vcf
+        <span class="nb">echo</span> <span class="nt">-n</span> <span class="s2">"EMAIL;TYPE=PREF,INTERNET:"</span> &amp;gt<span class="p">;</span>&amp;gt<span class="p">;</span> <span class="nv">$x</span>.vcf
+        <span class="nb">echo</span> <span class="sb">`</span><span class="nb">echo</span> <span class="nv">$line</span> | <span class="nb">cut</span> <span class="nt">-d</span><span class="s1">'|'</span> <span class="nt">-f4</span><span class="sb">`</span> &amp;gt<span class="p">;</span>&amp;gt<span class="p">;</span> <span class="nv">$x</span>.vcf
+        <span class="nb">echo</span> <span class="s2">"END:VCARD"</span> &amp;gt<span class="p">;</span>&amp;gt<span class="p">;</span> <span class="nv">$x</span>.vcf
+        <span class="nb">echo</span> &amp;gt<span class="p">;</span>&amp;gt<span class="p">;</span> <span class="nv">$x</span>.vcf
+    <span class="k">done
+    </span><span class="nb">echo</span> <span class="s2">"done </span><span class="nv">$x</span><span class="s2">"</span>
+<span class="k">done</span></code></pre></figure>
+
+<p>To use this script: login on the server where squirrel mail is installed and browse to squirrel mail’s data directory where squirrel mail keeps its .abook and .pref and .sig files.</p>
+
+<p>Next create a file by the name of “makevcard” and paste this script in that file.</p>
+
+<p>Next make the file executeable by running the following command</p>
+
+<blockquote>
+  <p>chmod +x ./makevcard</p>
+</blockquote>
+
+<p>Now execute the script by</p>
+
+<blockquote>
+  <p>./makevcard</p>
+</blockquote>
+
+<p>Squirrel mail saves the address book for every user in a separate file, for example name@domain.com.abook. After this script is executed, For every .abook file, you’ll get .abook.vcf file that will be in vcard format.</p>
+
+<p>copy all the .vcf files to any location you like and you can now use your roundcube built in “Import Contacts” Feature to import contacts of individual user;</p>
+:ET
