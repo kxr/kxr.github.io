@@ -14,9 +14,9 @@ If you follow along, by the end of this post, you should have a working OpenShif
 
 ### Update 19Apr2020:
 
-    * Created a script to automate this procedure. See: https://github.com/kxr/ocp4_setup_upi_kvm
-    * Demo:
-    [![asciicast](https://asciinema.org/a/bw6Wja2vBLrAkpKHTV0yGeuzo.svg)](https://asciinema.org/a/bw6Wja2vBLrAkpKHTV0yGeuzo)
+* Created a script to automate this procedure. See: https://github.com/kxr/ocp4_setup_upi_kvm
+* Demo:
+[![asciicast](https://asciinema.org/a/bw6Wja2vBLrAkpKHTV0yGeuzo.svg)](https://asciinema.org/a/bw6Wja2vBLrAkpKHTV0yGeuzo)
 
 
 
