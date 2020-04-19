@@ -12,6 +12,14 @@ All you need is an internet connected host that has enough CPU/Memory and virtua
 
 If you follow along, by the end of this post, you should have a working OpenShift 4 cluster with 3 master nodes, 2 worker nodes and a VM acting as the external load balancer.
 
+### Update 19Apr2020:
+
+    * Created a script to automate this procedure. See: https://github.com/kxr/ocp4_setup_upi_kvm
+    * Demo:
+    [![asciicast](https://asciinema.org/a/bw6Wja2vBLrAkpKHTV0yGeuzo.svg)](https://asciinema.org/a/bw6Wja2vBLrAkpKHTV0yGeuzo)
+
+
+
 ## Prerequisites and Assumptions
 
 * Make sure that the host has a stable and fast connection to the internet. This is important as during the boostrap process, all the control plane nodes download roughly 4-5 GB of images from the container registry (quay.io).
